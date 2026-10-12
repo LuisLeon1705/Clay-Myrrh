@@ -1,7 +1,8 @@
 """
-local_ai.py - CLI de IA local (llama.cpp / Ollama) estilo Claude Code / Gemini CLI.
+Querencia — tu IA, en casa. CLI de IA local (llama.cpp / Ollama) estilo Claude Code / Gemini CLI.
 
-Se lanza con local-ai.cmd (y el asistente de instalación con setup-local-ai.bat).
+Se lanza con querencia.cmd o el acceso directo «Querencia» (el asistente, con instalar-querencia.bat).
+local-ai.cmd sigue funcionando como alias del nombre anterior.
 El código vive en el paquete localai/; la descripción de cada módulo está en CLAUDE.md.
 """
 

@@ -1,11 +1,12 @@
 @echo off
 chcp 65001 >nul
 setlocal
-title Local AI - Asistente de instalacion
+title Querencia - Asistente de instalacion
 cd /d "%~dp0"
 echo.
-echo   Local AI - asistente de instalacion
-echo   ===================================
+echo   Querencia - tu IA, en casa
+echo   ==========================
+echo   Asistente de instalacion
 echo.
 
 where python >nul 2>nul
@@ -42,6 +43,8 @@ if errorlevel 1 (
   )
 )
 
+rem accesos directos con el icono (los .bat no pueden llevar icono propio)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0localai\assets\accesos.ps1" >nul 2>nul
 echo   Se abrira el asistente en tu navegador.
 echo   Esta ventana se cerrara sola al terminar la instalacion (o al cerrar la pagina).
 echo.
@@ -51,7 +54,7 @@ echo.
 echo   No se pudo abrir la version visual. Abriendo la version de consola...
 python -X utf8 "%~dp0local_ai.py" --setup-cli
 echo.
-echo   Para empezar a usarlo:  local-ai
-echo   Para descargar lo elegido mas tarde:  local-ai --download
+echo   Para empezar a usarlo:  acceso directo "Querencia" o querencia.cmd
+echo   Para descargar lo elegido mas tarde:  querencia --download
 echo.
 pause

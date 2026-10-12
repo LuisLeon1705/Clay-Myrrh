@@ -136,31 +136,13 @@ def detect(models_dir=None) -> Hardware:
         import os
         hw.cpu_threads = os.cpu_count() or 0
         hw.cpu_cores = max(1, hw.cpu_threads // 2)
-    # --- GPU -----------------------------------------------------------------
-    try:
-        import pynvml
-        pynvml.nvmlInit()
-        h = pynvml.nvmlDeviceGetHandleByIndex(0)
-        name = pynvml.nvmlDeviceGetName(h)
-        hw.gpu_name = name.decode() if isinstance(name, bytes) else str(name)
-        hw.vram_gb = round(pynvml.nvmlDeviceGetMemoryInfo(h).total / 2 ** 30, 1)
+    # --- GPU (misma detección que usa el programa: NVML → nvidia-smi → registro) ---
+    from . import gpu
+    g = gpu.info()
+    if g.found:
+        hw.gpu_name = g.name
+        hw.vram_gb = round(g.total / 2 ** 30, 1)
         hw.detected.append("gpu")
-    except Exception:
-        if sys.platform == "win32":
-            # AMD/Intel: el tamaño real está en el registro (AdapterRAM de WMI se queda en 4 GB)
-            out = _ps(r"Get-ItemProperty 'HKLM:\SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0*' "
-                      r"-ErrorAction SilentlyContinue | Select-Object DriverDesc,'HardwareInformation.qwMemorySize' | ConvertTo-Json -Compress")
-            try:
-                items = json.loads(out)
-                items = items if isinstance(items, list) else [items]
-                best = max(items, key=lambda d: int(d.get("HardwareInformation.qwMemorySize") or 0))
-                size = int(best.get("HardwareInformation.qwMemorySize") or 0)
-                if size:
-                    hw.gpu_name = str(best.get("DriverDesc", ""))
-                    hw.vram_gb = round(size / 2 ** 30, 1)
-                    hw.detected.append("gpu")
-            except Exception:
-                pass
     hw.gpu_bw = gpu_bandwidth_for(hw.gpu_name) if hw.gpu_name else 0.0
     # --- disco ---------------------------------------------------------------
     try:

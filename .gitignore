@@ -35,6 +35,7 @@ crash.log
 /documentos/
 
 # --- Editores y sistema ---
+*.lnk
 .vscode/
 .idea/
 *.swp

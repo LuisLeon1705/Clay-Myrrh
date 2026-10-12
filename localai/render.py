@@ -158,8 +158,9 @@ def mini_bar(ratio: float, width: int = 8) -> str:
 # Banner (estilo Gemini CLI: logo con degradado + consejos)
 # ---------------------------------------------------------------------------
 
-LOGO = ["█   █▀█ █▀▀ ▄▀█ █       ▄▀█ █",
-        "█▄▄ █▄█ █▄▄ █▀█ █▄▄     █▀█ █"]
+LOGO = ["█▀█ █ █ █▀▀ █▀█ █▀▀ █▄ █ █▀▀ █ ▄▀█",
+        "▀▀█ █▄█ ██▄ █▀▄ ██▄ █ ▀█ █▄▄ █ █▀█"]
+NAME, TAGLINE = "Querencia", "tu IA, en casa"
 
 
 def _hex(c: str) -> tuple[int, int, int]:
@@ -181,7 +182,7 @@ def banner(version: str, status: str, tips: list[str]):
     console.print()
     for ln in LOGO:
         console.print(gradient(ln, current.accent, current.user))
-    console.print(Text(f"v{version}", style="dim"))
+    console.print(Text(f"{TAGLINE} · v{version}", style="dim"))
     console.print()
     console.print("Consejos para empezar:", style="bold")
     for i, tip in enumerate(tips, 1):
@@ -266,9 +267,15 @@ def mem_report(est: Estimate, sysmem: SysMem, vram_budget: int, ram_budget: int,
     line.append_text(bar(rr))
     line.append(f" {gb(est.ram)} / {gb(ram_budget)} GB disponibles ({rr:.0%})", style=level_style(rr))
     console.print(line)
-    others = sysmem.vram_used - reclaim
-    console.print(f"  [dim]GPU {sysmem.gpu_name or '?'} · {gb(sysmem.vram_total)} GB · otros procesos usan "
-                  f"{gb(max(others, 0))} GB · margen de seguridad incluido · fuente {sysmem.source}[/]")
+    if not sysmem.vram_total:
+        console.print(f"  [dim]Sin GPU dedicada detectada: todo irá a la RAM · {sysmem.source}[/]")
+    elif sysmem.free_estimated:
+        console.print(f"  [dim]GPU {sysmem.gpu_name or '?'} · {gb(sysmem.vram_total)} GB · VRAM libre estimada (no se pudo "
+                      f"medir lo que usan otros programas) · margen de seguridad incluido · fuente {sysmem.source}[/]")
+    else:
+        others = sysmem.vram_used - reclaim
+        console.print(f"  [dim]GPU {sysmem.gpu_name or '?'} · {gb(sysmem.vram_total)} GB · otros procesos usan "
+                      f"{gb(max(others, 0))} GB · margen de seguridad incluido · fuente {sysmem.source}[/]")
     for n in est.notes:
         console.print(f"  [dim]· {n}[/]")
     if real is not None and (real.gpu or real.cpu):

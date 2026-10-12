@@ -3,8 +3,8 @@ Asistente de instalación visual: una página web local (solo en 127.0.0.1) que 
 en el navegador. Reutiliza el detector de hardware, el catálogo y el estimador del
 asistente de consola; aquí solo hay la API y la descarga con progreso.
 
-    local-ai --setup          (lo abre setup-local-ai.bat)
-    local-ai --setup-cli      (versión de consola, por si no hay navegador)
+    querencia --setup          (lo abre instalar-querencia.bat)
+    querencia --setup-cli      (versión de consola, por si no hay navegador)
 """
 
 from __future__ import annotations
@@ -55,6 +55,10 @@ class Setup:
     def __init__(self):
         self.token = secrets.token_urlsafe(18)
         self.detected = H.detect()
+        from . import gpu
+        self.vendor = gpu.info().vendor
+        summary, steps = gpu.engine_advice(self.vendor)
+        self.engine_help = {"summary": summary, "steps": steps}
         self.lock = threading.Lock()
         self.cancel = threading.Event()
         self.progress = {"state": "idle", "files": [], "total": 0, "done": 0, "speed": 0.0, "eta": None, "message": ""}
@@ -94,6 +98,7 @@ class Setup:
                             "needs_vision": c.needs_vision, "cloud": c.cloud} for c in CATEGORIES],
             "tiers": {k: {"name": v[0], "desc": v[1]} for k, v in TIERS.items()},
             "engine_ok": engine, "models_dir": str(MODELS_DIR), "plan": plan,
+            "gpu_vendor": self.vendor, "engine_help": self.engine_help,
         }
 
     def recommend(self, body: dict) -> dict:
@@ -255,6 +260,8 @@ def make_handler(app: Setup, stop: threading.Event):
             if path in ("/", "/index.html"):
                 html = (UI_DIR / "index.html").read_text(encoding="utf-8").replace("{{TOKEN}}", app.token)
                 return self._send(200, html, "text/html")
+            if path == "/favicon.ico":
+                return self._send(200, (Path(__file__).parent / "assets" / "querencia.ico").read_bytes(), "image/x-icon")
             static = {".css": "text/css", ".js": "application/javascript", ".svg": "image/svg+xml"}
             name = path[1:]
             if "/" not in name and Path(name).suffix in static and (UI_DIR / name).is_file():
@@ -313,7 +320,7 @@ def run_gui(port: int = 0, open_browser: bool = True) -> bool:
     srv = ThreadingHTTPServer(("127.0.0.1", port), make_handler(app, stop))
     url = f"http://127.0.0.1:{srv.server_address[1]}/"
     threading.Thread(target=srv.serve_forever, daemon=True).start()
-    say(f"\n  [accent]Asistente de instalación abierto en tu navegador[/]\n  {url}\n"
+    say(f"\n  [accent]Querencia · asistente de instalación abierto en tu navegador[/]\n  {url}\n"
         f"  [dim]Si no se abrió solo, copia esa dirección en el navegador. No cierres esta ventana hasta "
         f"terminar (Ctrl+C para salir).[/]\n")
     if open_browser:

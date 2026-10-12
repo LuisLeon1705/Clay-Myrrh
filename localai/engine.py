@@ -226,7 +226,7 @@ def _hints_from_log(lines: list[str], entry: ModelEntry) -> tuple[str, list[str]
         return ("VRAM insuficiente al reservar los buffers del modelo.",
                 ["/mem para ver el desglose", "/gpu auto o /gpu <n> para dejar capas en CPU",
                  "/ctx <n> más pequeño o /kv q8_0 para reducir la caché KV",
-                 "cierra juegos/apps que usen la GPU (NVML ve la VRAM libre real)"])
+                 "cierra juegos/apps que usen la GPU (restan VRAM libre)"])
     if "unknown model architecture" in txt or "unknown architecture" in txt:
         return (f"Esta versión de llama.cpp no reconoce la arquitectura '{entry.arch}'.",
                 ["actualiza llama-cpp-python", "o usa llama-server (llama.cpp) / Ollama con este GGUF"])
@@ -300,7 +300,7 @@ class LlamaEngine:
         if kv_type != "f16":
             kw["type_k"] = kw["type_v"] = KV_GGML_TYPE[kv_type]
         pos = llamalog.mark()
-        free0 = probe().vram_free
+        m0 = probe()
         t0 = time.time()
         try:
             with llamalog.capture_stderr():
@@ -328,7 +328,9 @@ class LlamaEngine:
 
         self.load_time = time.time() - t0
         self.real: RealUsage = parse_buffer_logs(llamalog.since(pos))
-        self.real.nvml_delta = max(0, free0 - probe().vram_free)
+        m1 = probe()
+        self.real.vram_delta = (None if m0.free_estimated or not m0.vram_total
+                                else max(0, m0.vram_free - m1.vram_free))
 
         # --- plantilla de chat para la ruta de texto ----------------------------
         tmpl = self.llm.metadata.get("tokenizer.chat_template")

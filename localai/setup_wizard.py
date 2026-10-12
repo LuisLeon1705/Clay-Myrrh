@@ -1,12 +1,12 @@
 """
-Asistente de instalación interactivo (local-ai --setup / setup-local-ai.bat).
+Asistente de instalación interactivo (querencia --setup / instalar-querencia.bat).
 
 1. Lee el hardware (CPU, GHz, RAM y MT/s, canales, GPU y VRAM) o permite corregirlo o
    simular otro equipo (de 8 GB sin GPU hasta 512 GB+).
 2. Explica las categorías y los niveles Básico/Moderado/Extensivo con el modelo que
    corresponde a TU equipo, cuánto ocupa, dónde corre y a qué velocidad aproximada,
    y cuándo conviene más una IA en la nube.
-3. Guarda el plan, descarga lo elegido (local-ai --download) y deja la configuración
+3. Guarda el plan, descarga lo elegido (querencia --download) y deja la configuración
    ajustada (perfiles para /modo, modelo principal y lector visual).
 """
 
@@ -310,7 +310,7 @@ def download_files(files: list[tuple[str, str, int, Path]]) -> bool:
                                 prog.advance(overall, len(chunk))
                     break
                 except KeyboardInterrupt:
-                    warn(f"Descarga interrumpida; se reanudará con local-ai --download ({part.name})")
+                    warn(f"Descarga interrumpida; se reanudará con querencia --download ({part.name})")
                     return False
                 except Exception as e:
                     have = part.stat().st_size if part.exists() else 0
@@ -360,7 +360,7 @@ def apply_plan(plan: dict):
 def run_download(plan: dict | None = None) -> bool:
     plan = plan or (json.loads(PLAN_FILE.read_text(encoding="utf-8")) if PLAN_FILE.exists() else None)
     if not plan:
-        error("No hay ningún plan de instalación. Ejecuta primero: local-ai --setup")
+        error("No hay ningún plan de instalación. Ejecuta primero: querencia --setup")
         return False
     todo = []
     with console.status("[dim]Consultando Hugging Face…[/]", spinner="dots"):
@@ -386,7 +386,7 @@ def run_download(plan: dict | None = None) -> bool:
     if files:
         total = sum(f[2] for f in files) / 2 ** 30
         say(f"[accent]Descargando {len(files)} archivo(s), {total:.1f} GB[/] [dim](puedes cortar con Ctrl+C y "
-            f"reanudar con local-ai --download)[/]")
+            f"reanudar con querencia --download)[/]")
         if not download_files(files):
             return False
     else:
@@ -412,9 +412,12 @@ def run_wizard() -> bool:
     try:
         import llama_cpp  # noqa: F401
     except Exception:
-        warn("llama-cpp-python no está instalado: es el motor que ejecuta los modelos.")
-        say("  [dim]CPU o cualquier GPU (Vulkan):[/] pip install llama-cpp-python  [dim](o una wheel precompilada)[/]")
-        say("  [dim]NVIDIA (CUDA, más rápido al leer prompts):[/] busca una wheel 'cu12x' para tu versión de Python")
+        from rich.markup import escape
+        from . import gpu
+        summary, steps = gpu.engine_advice(gpu.info().vendor)
+        warn("llama-cpp-python no está instalado: es el motor que ejecuta los modelos. " + summary)
+        for st in steps:
+            say(f"  [dim]·[/] {escape(st)}")
     hw = choose_hardware()
     console.print()
     sel = _multi("¿Para qué quieres usar la IA? (marca con Espacio)",
@@ -440,7 +443,7 @@ def run_wizard() -> bool:
     usable = [c for c in choices if c != "lectura"]
     primary = None
     if usable:
-        primary = _select("¿Cuál será tu uso principal? (el modelo que se carga al abrir local-ai)",
+        primary = _select("¿Cuál será tu uso principal? (el modelo que se carga al abrir Querencia)",
                           [(c, category(c).name, M[choices[c]].name) for c in usable]) or usable[0]
     # resumen
     console.print()
@@ -472,13 +475,13 @@ def run_wizard() -> bool:
     PLAN_FILE.write_text(json.dumps(plan, indent=1, ensure_ascii=False), encoding="utf-8")
     act = _select("¿Qué hacemos?", [
         ("now", "Descargar ahora y aplicar la configuración", f"{total:.1f} GB"),
-        ("later", "Solo guardar el plan (descargar luego con: local-ai --download)", ""),
+        ("later", "Solo guardar el plan (descargar luego con: querencia --download)", ""),
         ("cancel", "Cancelar", ""),
     ])
     if act == "now":
         return run_download(plan)
     if act == "later":
-        ok(f"Plan guardado en {PLAN_FILE}. Cuando quieras: local-ai --download")
+        ok(f"Plan guardado en {PLAN_FILE}. Cuando quieras: querencia --download")
         return True
     return False
 

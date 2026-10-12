@@ -1,4 +1,4 @@
-/* Local AI · webkit — comportamiento de los componentes (generado; edita pagina.lai, no este archivo) */
+/* Querencia · componentes — comportamiento de los componentes (generado; edita pagina.lai, no este archivo) */
 (function () {
   "use strict";
   const $ = (s, r = document) => r.querySelector(s);

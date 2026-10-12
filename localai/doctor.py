@@ -38,6 +38,8 @@ def _ver(pkg: str) -> str | None:
 
 def run_doctor(app):
     ok_s, bad_s, warn_s = "[ok]✔[/]", "[bad]✖[/]", "[mid]⚠[/]"
+    from . import gpu as gpumod
+    sm = probe()
 
     # ---------------------------------------------------------- dependencias
     tb = Table(box=None, padding=(0, 2), show_header=False)
@@ -50,6 +52,15 @@ def run_doctor(app):
                            ("pillow", False, "imágenes"), ("psutil", False, "RAM"),
                            ("nvidia-ml-py", False, "VRAM (NVML)"), ("requests", False, "Ollama")]:
         v = _ver(pkg)
+        if pkg == "nvidia-ml-py" and not v and sm.vendor in ("amd", "intel"):
+            tb.add_row(ok_s, pkg, f"no hace falta con GPU {gpumod.VENDOR_NAME[sm.vendor]} (se usa el registro y el contador de Windows)")
+            continue
+        if pkg == "llama_cpp_python" and not v:
+            summary, steps = gpumod.engine_advice(sm.vendor)
+            tb.add_row(bad_s, pkg, f"NO instalado · {why} → {summary}")
+            for st in steps:
+                tb.add_row("", "", f"  · {st}")
+            continue
         tb.add_row(ok_s if v else (bad_s if need else warn_s), pkg, f"{v or 'NO instalado'} · {why}"
                    + ("" if v else f" → pip install {pkg}"))
     console.print(Panel(tb, title="Dependencias", title_align="left", border_style="border"))
@@ -70,7 +81,13 @@ def run_doctor(app):
         gpu_ok = bool(L.llama_supports_gpu_offload())
         tb.add_row(ok_s if gpu_ok else bad_s, "llama-cpp-python", f"{L.__version__} · backend GPU: "
                    f"{', '.join(backends) or 'ninguno (solo CPU)'}")
-        if "CUDA" not in backends and "Vulkan" in backends:
+        if not gpu_ok and sm.vram_total:
+            summary, steps = gpumod.engine_advice(sm.vendor)
+            tb.add_row(bad_s, "Aceleración GPU", f"tienes {sm.gpu_name}, pero este llama-cpp-python es solo CPU: "
+                       "los modelos no usarán la GPU. " + summary)
+            for st in steps:
+                tb.add_row("", "", f"  · {st}")
+        if "CUDA" not in backends and "Vulkan" in backends and sm.vendor == "nvidia":
             tb.add_row(warn_s, "CUDA", "No es un build CUDA (es Vulkan). Funciona, pero en NVIDIA CUDA suele ser "
                                        "más rápido al procesar prompts/imágenes y no tiene el «calentamiento» de "
                                        "shaders de Vulkan en los primeros cientos de tokens.")
@@ -79,15 +96,15 @@ def run_doctor(app):
         tb.add_row(ok_s if mtmd_dll else bad_s, "libmtmd (visión)", "presente" if mtmd_dll else "falta mtmd.dll: sin visión")
     except Exception as e:
         tb.add_row(bad_s, "llama-cpp-python", f"no se pudo importar: {e}")
-    sm = probe()
     if sm.vram_total:
-        tb.add_row(ok_s, "GPU", f"{sm.gpu_name} · {render.gb(sm.vram_total)} GB · libre {render.gb(sm.vram_free)} GB ({sm.source})")
+        libre = ("libre ≈" if sm.free_estimated else "libre") + f" {render.gb(sm.vram_free)} GB"
+        tb.add_row(ok_s, "GPU", f"{sm.gpu_name} · {render.gb(sm.vram_total)} GB · {libre} ({sm.source})")
         used_others = sm.vram_used - app._current_vram()
-        if used_others > 1.5 * 1024 ** 3:
+        if used_others > 1.5 * 1024 ** 3 and not sm.free_estimated:
             tb.add_row(warn_s, "VRAM ocupada", f"{render.gb(used_others)} GB usados por otros programas "
                        "(juegos, navegador, fondos animados…): restan VRAM y rendimiento")
     else:
-        tb.add_row(bad_s, "GPU", "no se detectó GPU NVIDIA (ni NVML ni nvidia-smi)")
+        tb.add_row(warn_s, "GPU", "no se detectó GPU dedicada (NVML, nvidia-smi ni registro de Windows): los modelos irán en la CPU")
     tb.add_row(ok_s if sm.ram_total else warn_s, "RAM", f"{render.gb(sm.ram_total)} GB · disponible {render.gb(sm.ram_avail)} GB")
     try:
         import requests

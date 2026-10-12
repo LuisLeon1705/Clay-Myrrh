@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import ctypes
 import math
-import subprocess
 import time
 from dataclasses import dataclass, field
 
@@ -50,6 +49,8 @@ class SysMem:
     ram_total: int = 0
     ram_avail: int = 0
     source: str = ""
+    vendor: str = ""               # nvidia | amd | intel | ""
+    free_estimated: bool = False   # VRAM libre no medida (total − margen)
 
     @property
     def vram_used(self) -> int:
@@ -60,22 +61,7 @@ class SysMem:
         return self.ram_total - self.ram_avail
 
 
-_nvml_handle = None
-_nvml_failed = False
 _cache: tuple[float, SysMem] | None = None
-
-
-def _nvml():
-    global _nvml_handle, _nvml_failed
-    if _nvml_handle is not None or _nvml_failed:
-        return _nvml_handle
-    try:
-        import pynvml
-        pynvml.nvmlInit()
-        _nvml_handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-    except Exception:
-        _nvml_failed = True
-    return _nvml_handle
 
 
 def _ram() -> tuple[int, int]:
@@ -101,32 +87,15 @@ def _ram() -> tuple[int, int]:
 
 
 def probe(max_age: float = 0.0) -> SysMem:
-    """VRAM (NVML → nvidia-smi) y RAM (psutil → WinAPI). Cacheado max_age segundos."""
+    """VRAM (detección única de localai.gpu: NVML → nvidia-smi → registro de Windows) y RAM. Cacheado max_age s."""
     global _cache
     now = time.monotonic()
     if _cache and now - _cache[0] <= max_age:
         return _cache[1]
-    s = SysMem()
-    h = _nvml()
-    if h is not None:
-        try:
-            import pynvml
-            mi = pynvml.nvmlDeviceGetMemoryInfo(h)
-            name = pynvml.nvmlDeviceGetName(h)
-            s.gpu_name = name.decode() if isinstance(name, bytes) else str(name)
-            s.vram_total, s.vram_free, s.source = mi.total, mi.free, "NVML"
-        except Exception:
-            pass
-    if not s.vram_total:
-        try:
-            out = subprocess.run(
-                ["nvidia-smi", "--query-gpu=name,memory.total,memory.free", "--format=csv,noheader,nounits"],
-                capture_output=True, text=True, timeout=5, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-            ).stdout.strip().splitlines()[0]
-            name, tot, free = [x.strip() for x in out.split(",")]
-            s.gpu_name, s.vram_total, s.vram_free, s.source = name, int(tot) * MiB, int(free) * MiB, "nvidia-smi"
-        except Exception:
-            s.source = "sin GPU NVIDIA detectada"
+    from . import gpu
+    g = gpu.info(max_age=max(2.0, max_age))
+    s = SysMem(gpu_name=g.name, vram_total=g.total, vram_free=g.free, source=g.source, vendor=g.vendor,
+               free_estimated=g.free_estimated)
     s.ram_total, s.ram_avail = _ram()
     _cache = (now, s)
     return s
@@ -466,7 +435,7 @@ class RealUsage:
     gpu: int = 0
     cpu: int = 0
     parts: dict[str, float] = field(default_factory=dict)   # "Vulkan0 model" -> MiB
-    nvml_delta: int | None = None
+    vram_delta: int | None = None     # VRAM libre antes − después de cargar (None si no se pudo medir)
 
 
 def parse_buffer_logs(lines: list[str]) -> RealUsage:
@@ -482,7 +451,7 @@ def parse_buffer_logs(lines: list[str]) -> RealUsage:
             if ln.lstrip().startswith("~"):  # mensajes de verificación al liberar
                 continue
             if ln.startswith("reserve_compute_meta"):   # codificador de visión (clip)
-                dev = "mmproj" if dev.lower().startswith(("vulkan", "cuda", "rocm", "metal")) else "mmproj-cpu"
+                dev = "mmproj" if dev.lower().startswith(("vulkan", "cuda", "rocm", "metal", "hip", "sycl")) else "mmproj-cpu"
             key = f"{dev} {kind}"
             ru.parts[key] = ru.parts.get(key, 0.0) + mib
             continue
@@ -497,7 +466,7 @@ def parse_buffer_logs(lines: list[str]) -> RealUsage:
     for k, mib in ru.parts.items():
         dev = k.split()[0].lower()
         b = int(mib * MiB)
-        if dev.startswith(("vulkan", "cuda", "rocm", "metal")) and "host" not in dev or dev == "mmproj":
+        if dev.startswith(("vulkan", "cuda", "rocm", "metal", "hip", "sycl")) and "host" not in dev or dev == "mmproj":
             ru.gpu += b
         else:
             ru.cpu += b

@@ -26,7 +26,7 @@ code { background: var(--surface-2); padding: .1em .4em; border-radius: 6px; fon
   background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
 .brand { font-weight: 800; display: flex; align-items: baseline; gap: .45rem; white-space: nowrap; }
 .brand small { font-weight: 500; color: var(--muted); }
-.logo { color: var(--accent); }
+.logo { align-self: center; border-radius: 6px; }
 .stepper { display: flex; gap: .35rem; list-style: none; margin: 0 auto; padding: 0; counter-reset: s; }
 .stepper li { display: flex; align-items: center; gap: .4rem; font-size: .82rem; color: var(--muted); padding: .3rem .6rem; border-radius: 999px; }
 .stepper li::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 1.45rem; height: 1.45rem;
@@ -171,3 +171,5 @@ select, input[type=number], input[type=search] { width: 100%; padding: .55rem .7
 .drawer dd { margin: .3rem 0 0; color: var(--muted); font-size: .94rem; }
 .tooltip { position: fixed; z-index: 50; max-width: 320px; background: var(--text); color: var(--bg); padding: .7rem .9rem; border-radius: 12px;
   font-size: .86rem; box-shadow: var(--shadow); pointer-events: none; }
+.hero-logo { filter: drop-shadow(0 26px 40px rgba(124, 58, 237, .45)); animation: float 5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .hero-logo { animation: none; } }

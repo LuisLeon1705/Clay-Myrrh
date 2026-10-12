@@ -1440,7 +1440,7 @@ class App:
             vr = sm.vram_used / sm.vram_total
             right += [("class:toolbar.dim", " · VRAM "),
                       (f"class:toolbar.{'ok' if vr < .8 else 'mid' if vr < .95 else 'bad'}",
-                       f"{render.gb(sm.vram_used)}/{render.gb(sm.vram_total)}G")]
+                       f"{'≈' if sm.free_estimated else ''}{render.gb(sm.vram_used)}/{render.gb(sm.vram_total)}G")]
         right.append(("class:toolbar", " "))
         return left, right
 
@@ -2246,7 +2246,7 @@ class App:
                 raise ValueError(f"Uso: /memory {sub} <texto>")
             f = GLOBAL_MEMORY_FILE if sub == "add" else project_memory_file()
             f.parent.mkdir(parents=True, exist_ok=True)
-            prev = f.read_text(encoding="utf-8") if f.exists() else "# Memoria de Local AI\n"
+            prev = f.read_text(encoding="utf-8") if f.exists() else "# Memoria de Querencia\n"
             f.write_text(prev.rstrip() + f"\n- {rest.strip()}\n", encoding="utf-8")
             self.memory_text = load_memory_text()
             self._mark_ctx()
@@ -2255,7 +2255,7 @@ class App:
             f = project_memory_file() if rest.strip().startswith("proy") else GLOBAL_MEMORY_FILE
             if not f.exists():
                 f.parent.mkdir(parents=True, exist_ok=True)
-                f.write_text("# Memoria de Local AI\n\n- \n", encoding="utf-8")
+                f.write_text("# Memoria de Querencia\n\n- \n", encoding="utf-8")
             editor = os.environ.get("EDITOR", "notepad")
             say(f"[dim]Abriendo {f} con {editor}… (guarda y cierra para continuar)[/]")
             subprocess.call([editor, str(f)])
@@ -2403,7 +2403,7 @@ class App:
     def cmd_modo(self, arg: str):
         profiles = self.s.profiles or {}
         if not profiles:
-            raise ValueError("Aún no tienes perfiles: ejecuta /setup (o setup-local-ai.bat).")
+            raise ValueError("Aún no tienes perfiles: ejecuta /setup (o instalar-querencia.bat).")
         key = arg.strip().lower()
         if not key:
             from .inputbox import Choice, select
@@ -2423,7 +2423,7 @@ class App:
         entry = self.catalog.find(prof["model"])
         if entry is None:
             raise ValueError(f"El modelo del perfil ({prof['model']}) no está en models/. ¿Falta descargarlo? "
-                             f"(local-ai --download)")
+                             f"(querencia --download)")
         if self.entry is not None and entry.name == self.entry.name:
             ok(f"Perfil aplicado ({prof.get('max_tokens')} tokens, temp {prof.get('temperature')}, "
                f"razonamiento {'on' if prof.get('thinking') else 'off'}).")
@@ -2485,7 +2485,7 @@ SETTABLE = ("pdf_max_pages", "pdf_max_image_pages", "image_max_side", "keep_imag
 # ---------------------------------------------------------------------------
 
 def parse_args(argv=None):
-    p = argparse.ArgumentParser(prog="local-ai", description="CLI de IA local (llama.cpp / Ollama)",
+    p = argparse.ArgumentParser(prog="querencia", description="Querencia — tu IA, en casa (llama.cpp / Ollama)",
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument("prompt", nargs="?", help="pregunta directa (modo one-shot; también acepta stdin)")
     p.add_argument("-m", "--model", help="archivo GGUF (nombre o ruta) o modelo de Ollama")
@@ -2522,7 +2522,7 @@ def pick_default(app: App, args) -> ModelEntry | None:
         if e is None and not args.model.lower().endswith(".gguf"):
             e = ModelEntry(name=args.model, kind="ollama", size_bytes=0)   # p. ej. "llava:7b"
         if e is None:
-            raise ValueError(f"No encuentro el modelo '{args.model}' (local-ai --list)")
+            raise ValueError(f"No encuentro el modelo '{args.model}' (querencia --list)")
         return e
     needs_vision = bool(args.image or args.pdf) and app.s.vision_mode == "directo"
     if needs_vision:

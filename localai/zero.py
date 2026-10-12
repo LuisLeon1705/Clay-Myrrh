@@ -661,7 +661,7 @@ def run_zero(app, resume: bool = False):
             break
     if proj.answers.get("build") == "components" and (proj.dir / "index.html").exists():
         (proj.dir / "README.md").write_text(
-            f"# {proj.name}\n\n{proj.desc}\n\nPágina generada por Local AI con componentes prediseñados.\n\n"
+            f"# {proj.name}\n\n{proj.desc}\n\nPágina generada con Querencia y sus componentes prediseñados.\n\n"
             "- Abre `index.html` en el navegador (no necesita instalar nada).\n"
             "- Para cambiar textos, colores o secciones edita `pagina.lai` (o pídeselo al modelo) y se regenera.\n"
             "- Tema y color: primera línea `<page theme=\"…\" accent=\"#hex\" font=\"…\">`.\n", encoding="utf-8")

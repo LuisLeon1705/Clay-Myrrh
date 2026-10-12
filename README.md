@@ -1,4 +1,9 @@
-# Local AI CLI
+<img src="localai/assets/querencia.png" alt="" width="96" align="right">
+
+# Querencia
+
+**Tu IA, en casa.** La *querencia* es el lugar donde uno se siente a salvo, al que siempre vuelve: aquí,
+una IA que vive en tu ordenador, funciona sin internet y no comparte nada con nadie.
 
 Asistente de IA **100 % local** para la terminal, al estilo de Claude Code o Gemini CLI. Ejecuta modelos
 GGUF con [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) o con [Ollama](https://ollama.com),
@@ -15,7 +20,7 @@ Interfaz en español · Windows · Python 3.10+ (probado con 3.14).
   transcribe imágenes y PDFs escaneados para él. El mmproj se empareja solo, por metadatos.
 - **Archivos**: lo que escribe el modelo (HTML, código, documentos) se guarda solo (`/archivos`, `/open`,
   `/save`).
-- **Modo proyecto** (`/proyecto <carpeta>` o `local-ai -d <carpeta>`): el modelo trabaja directamente sobre
+- **Modo proyecto** (`/proyecto <carpeta>` o `querencia -d <carpeta>`): el modelo trabaja directamente sobre
   una carpeta tuya, como un proyecto de Claude Code. Lee, busca, crea y edita archivos con ediciones pequeñas
   (BUSCAR/REEMPLAZAR). Cada cambio guarda una copia: `/deshacer` lo revierte y `/cambios diff` lo muestra.
 - **Relevo automático**: si una respuesta no cabe en `/tokens`, el programa la divide en partes y las
@@ -33,7 +38,7 @@ Interfaz en español · Windows · Python 3.10+ (probado con 3.14).
 
 ## Instalación
 1. Instala Python 3.10 o superior.
-2. Ejecuta **`setup-local-ai.bat`**. Comprueba las dependencias y abre el asistente en el navegador. La
+2. Ejecuta **`instalar-querencia.bat`**. Comprueba las dependencias y abre el asistente en el navegador. La
    ventana de consola se cierra sola al terminar (o al cerrar la página, salvo durante una descarga).
    También puedes instalar a mano:
    ```bash
@@ -57,15 +62,17 @@ Interfaz en español · Windows · Python 3.10+ (probado con 3.14).
    ```
 
 ## Uso
+Abre el acceso directo **Querencia** (lo crea el instalador, con su icono) o, desde una terminal:
 ```bash
-local-ai                                 # abre el REPL (local-ai.cmd)
-local-ai -m Qwen3.6 --ctx 32k            # modelo y contexto para esta sesión
-local-ai -m Qwen3.6 "explica este error" -f log.txt   # pregunta directa
-local-ai --mem -m Qwen3.6                # cuánta VRAM/RAM necesita, sin cargarlo
-local-ai -d C:\proyectos\mi-web          # abrir una carpeta como proyecto
-local-ai --setup                         # asistente de instalación
+querencia                                # abre el REPL (querencia.cmd o el acceso directo)
+querencia -m Qwen3.6 --ctx 32k            # modelo y contexto para esta sesión
+querencia -m Qwen3.6 "explica este error" -f log.txt   # pregunta directa
+querencia --mem -m Qwen3.6                # cuánta VRAM/RAM necesita, sin cargarlo
+querencia -d C:\proyectos\mi-web          # abrir una carpeta como proyecto
+querencia --setup                         # asistente de instalación
 ```
-Las opciones de la línea de comandos solo valen para esa sesión. Para cambiar algo de forma permanente,
+`local-ai` sigue funcionando como alias del nombre anterior. Las opciones de la línea de comandos solo
+valen para esa sesión. Para cambiar algo de forma permanente,
 usa `/settings`.
 
 ### Comandos principales
@@ -161,11 +168,24 @@ Todo el estado vive en `~/.local_ai/` (fuera de este repositorio):
 | `crash.log` | errores no controlados |
 
 ## Problemas frecuentes
+- **GPU AMD o Intel**: se detecta por el registro de Windows y la VRAM libre por los contadores del
+  sistema. Ojo: `pip install llama-cpp-python` instala la versión solo CPU; `/doctor` explica cómo
+  conseguir la de Vulkan (o usar Ollama).
 - **Va lento o falta VRAM**: usa `/mem` y `/auto`. Un juego o un fondo animado en la GPU puede reducir
   mucho la velocidad.
 - **El modelo no ve imágenes**: `/doctor` indica qué mmproj falta y cuál descargar. El programa nunca
   descarga nada sin tu permiso.
 - **Una respuesta se corta**: el relevo la continúa solo. Si lo has desactivado, sube `/tokens`.
+
+## Identidad
+- **Nombre:** Querencia · **lema:** «tu IA, en casa» · **colores:** violeta `#7c3aed` → cian `#06b6d4`.
+- **Icono:** un chip con una casa (`localai/assets/querencia.ico`, `.png` y `.svg`). Es el mismo en los
+  accesos directos, la barra del navegador del asistente y la guía.
+- **Accesos directos:** los `.bat` no admiten icono propio, así que el instalador crea `Querencia.lnk` e
+  `Instalar Querencia.lnk` con el icono. Para crearlos también en el escritorio:
+  `powershell -ExecutionPolicy Bypass -File localai\assets\accesos.ps1 -Escritorio`.
+- **Nombres internos que no cambian** (para no perder datos ni romper rutas): el paquete `localai/`, la
+  entrada `local_ai.py` y la carpeta de datos `~/.local_ai/`.
 
 ## Estructura del código
 El paquete `localai/` contiene la aplicación, los motores, la memoria, la visión, el relevo, el

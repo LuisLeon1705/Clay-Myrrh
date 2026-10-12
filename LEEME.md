@@ -1,7 +1,9 @@
-# Local AI CLI v3.1
+# Querencia v4.0 · notas de desarrollo
 
-## Asistente de instalación (`setup-local-ai.bat` o `local-ai --setup`)
-Se abre como **página web local en el navegador** (solo en 127.0.0.1): pasos visuales, carriles VRAM/RAM animados, demostración de velocidad que escribe en vivo a N tokens/s, tarjetas por nivel con el reparto GPU/RAM dibujado, glosario (token, VRAM, MoE, cuantización, mmproj…) y descarga con barras de progreso, pausa y reanudación. `local-ai --setup-cli` (o `/setup cli`) abre la versión de consola.
+> Antes se llamaba «Local AI». Esta página es el diario técnico; la guía de uso está en README.md.
+
+## Asistente de instalación (`instalar-querencia.bat` o `querencia --setup`)
+Se abre como **página web local en el navegador** (solo en 127.0.0.1): pasos visuales, carriles VRAM/RAM animados, demostración de velocidad que escribe en vivo a N tokens/s, tarjetas por nivel con el reparto GPU/RAM dibujado, glosario (token, VRAM, MoE, cuantización, mmproj…) y descarga con barras de progreso, pausa y reanudación. `querencia --setup-cli` (o `/setup cli`) abre la versión de consola.
 
 1. Comprueba Python y las librerías (las instala con pip si aceptas).
 2. Lee tu hardware: CPU (núcleos, GHz), RAM (GB, tipo, **MT/s**, canales), GPU (VRAM y ancho de banda) y
@@ -11,7 +13,7 @@ Se abre como **página web local en el navegador** (solo en 127.0.0.1): pasos vi
 4. Para cada uso ves los niveles **Básico / Moderado / Extensivo**, cada uno con el modelo que corresponde a
    TU equipo, su tamaño, dónde corre (GPU, GPU+RAM o CPU), la velocidad aproximada en t/s y cuándo te
    conviene más una IA en la nube como Claude. También puedes reutilizar un modelo que ya tengas.
-5. Guarda el plan, descarga lo elegido (`local-ai --download`, se puede reanudar) y deja la configuración:
+5. Guarda el plan, descarga lo elegido (`querencia --download`, se puede reanudar) y deja la configuración:
    modelo principal, lector visual y un perfil por uso. Con `/modo programacion` (o la categoría que sea)
    cambias de modelo y ajustes.
 
@@ -57,8 +59,22 @@ Cada respuesta reserva un 15 % de `/tokens` (ajustable 10–25 % en `/settings`)
 - Prueba (4B, `/tokens 600`, guía de 6 secciones): 4 ejecuciones, 2.269 tokens de prompt en total; antes
   eran 7 ejecuciones y 8.563 tokens, y crecían con cada relevo porque cada una releía todo lo anterior.
 
+## Detección de GPU unificada · AMD e Intel (octubre 2026)
+- Bug: con una RX 6800 el asistente veía 16 GB (registro) y el programa 0 GB (solo NVML/nvidia-smi), así que
+  el ajuste automático ponía 0 capas en la GPU. Ahora ambos usan `localai/gpu.py`.
+- VRAM libre de AMD/Intel con PDH en inglés (funciona con Windows en español); comprobado aquí contra NVML:
+  1.591 MiB del contador frente a 1.756 MiB de NVML (se descuentan 192 MiB de reserva del controlador).
+- Prueba simulada (RX 6800 + integrada de 512 MB): 33/33 capas del 9B en GPU, 25/41 del 35B MoE; `/doctor`
+  explica cómo conseguir el motor Vulkan si el instalado es solo CPU. La RTX 3070 real sigue por NVML.
+
+## Querencia: nombre e icono (octubre 2026)
+- El proyecto pasa a llamarse **Querencia** («tu IA, en casa»), versión 4.0. Lanzador `querencia.cmd`
+  (con `local-ai.cmd` como alias), instalador `instalar-querencia.bat` y accesos directos con icono.
+- Icono generado con Pillow (`localai/assets/querencia.ico`, 16–256 px; sin patillas en 16–32 px para que
+  se lea en la barra de tareas) y el mismo dibujo en SVG como favicon del asistente.
+
 ## Asistente con guía y comparativa · 57 componentes (octubre 2026)
-- `setup-local-ai.bat`: antes de instalar se abre una guía paso a paso (pasos cortos que avanzan solos) con Claude, Gemini,
+- `instalar-querencia.bat`: antes de instalar se abre una guía paso a paso (pasos cortos que avanzan solos) con Claude, Gemini,
   Codex y la IA local. Enlaces directos: `#guia-3`, `#comparativa`, `#componentes`, `#instalacion`.
 - Precios a octubre de 2026 de fuentes de terceros (verificar): Claude Pro 20 $ · Max 100/200 $; Gemini AI Plus
   4,99 $ (modelos Flash) · AI Pro 19,99 $ en adelante para el resto; Codex con ChatGPT Go 8 $ · Plus 20 $ · Pro 100/200 $.
@@ -71,7 +87,7 @@ Cada respuesta reserva un 15 % de `/tokens` (ajustable 10–25 % en `/settings`)
 - Componentes probados con Edge sin ventana: 21/21 comprobaciones nuevas + 15/15 anteriores.
 
 ## Modo proyecto y plantillas (octubre 2026)
-- `/proyecto <carpeta>` o `local-ai -d <carpeta>`: el modelo edita esa carpeta directamente. Detalles en el
+- `/proyecto <carpeta>` o `querencia -d <carpeta>`: el modelo edita esa carpeta directamente. Detalles en el
   README («Modo proyecto»). Prueba con el 4B en CPU: título, color y alerta en 3 archivos, aplicados en un
   solo turno. El modelo escribió los pares BUSCAR/REEMPLAZAR sin `<editar>` y el programa dedujo cada archivo
   por su contenido.
@@ -107,10 +123,10 @@ el código a otra carpeta. Si la respuesta se corta por longitud, el archivo se 
 - `/help` por categorías y menú `/settings`.
 
 ```
-local-ai                      # interactivo (último modelo usado)
-local-ai -m Qwen2-VL-2B       # elegir modelo (nombre parcial, ruta .gguf o modelo de Ollama "llava:7b")
-local-ai "pregunta" -p doc.pdf -i foto.png -f code.py   # one-shot
-local-ai --list | --doctor | --mem -m <modelo> --ctx 16k
+querencia                      # interactivo (último modelo usado)
+querencia -m Qwen2-VL-2B       # elegir modelo (nombre parcial, ruta .gguf o modelo de Ollama "llava:7b")
+querencia "pregunta" -p doc.pdf -i foto.png -f code.py   # one-shot
+querencia --list | --doctor | --mem -m <modelo> --ctx 16k
 ```
 
 Opciones de una sola ejecución (no se guardan): `--ctx n|32k|auto`, `--gpu n|auto|max`, `--kv f16|q8_0|q4_0`,

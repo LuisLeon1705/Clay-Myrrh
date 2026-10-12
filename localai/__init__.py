@@ -1,3 +1,3 @@
-"""Local AI CLI: paquete principal."""
+"""Querencia — tu IA, en casa: paquete principal."""
 
-__version__ = "3.1"
+__version__ = "4.0"

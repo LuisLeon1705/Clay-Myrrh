@@ -1,8 +1,8 @@
-# Local AI CLI: contexto para Gemini CLI
+# Querencia: contexto para Gemini CLI
 
 > Mismo contenido que `CLAUDE.md`. Si cambias uno, actualiza el otro.
 
-CLI de IA local en Python (estilo Claude Code / Gemini CLI) que ejecuta modelos GGUF con llama-cpp-python
+**Querencia** («tu IA, en casa»; antes «Local AI»): CLI de IA local en Python (estilo Claude Code / Gemini CLI) que ejecuta modelos GGUF con llama-cpp-python
 o con Ollama. Lee imágenes y PDFs, crea archivos y encadena respuestas largas con el «relevo».
 La interfaz y los textos son **en español**. Guía de uso completa: `README.md`. Diagnósticos e historial
 de decisiones: `LEEME.md`.
@@ -16,7 +16,7 @@ de decisiones: `LEEME.md`.
 
 ## Comandos
 ```bash
-python local_ai.py                      # REPL (equivale a local-ai.cmd)
+python local_ai.py                      # REPL (equivale a querencia.cmd)
 python local_ai.py --doctor             # diagnóstico: dependencias, backend GPU, modelos, mmproj
 python local_ai.py --list               # modelos encontrados
 python local_ai.py --mem -m <modelo>    # estimación de VRAM/RAM sin cargar
@@ -32,8 +32,8 @@ No hay suite de tests formal. Prueba con scripts propios y **aísla la configura
 ## Estructura
 ```
 local_ai.py            entrada mínima → localai.app.main
-local-ai.cmd           lanzador de Windows
-setup-local-ai.bat     comprueba Python y dependencias, abre el asistente
+querencia.cmd          lanzador de Windows (local-ai.cmd = alias del nombre anterior)
+instalar-querencia.bat comprueba Python y dependencias, crea los accesos directos y abre el asistente
 localai/
   app.py               REPL, comandos (/model, /settings…), run_generation, relay_chain
   config.py            rutas, dataclass Settings, migraciones (settings_version), TRANSIENT
@@ -41,6 +41,7 @@ localai/
   gguf.py              lector de cabeceras GGUF
   catalog.py           descubrimiento de modelos y emparejamiento de mmproj por metadatos
   memory.py            estimación de VRAM/RAM por arquitectura y auto-ajuste
+  gpu.py               detección de GPU ÚNICA (NVIDIA, AMD, Intel): la usan memory.probe() y hardware.detect()
   hardware.py          detección de hardware y velocidad estimada por ancho de banda
   model_catalog.py     catálogo verificado de modelos para el asistente
   setup_wizard.py      asistente en consola · setup_gui.py + setup_ui/: asistente web
@@ -49,6 +50,7 @@ localai/
   reader.py            «lector» visual: un VLM transcribe para un modelo de texto (con caché)
   files.py             extracción de bloques/archivos de las respuestas y autoguardado
   relay.py             relevo automático (ver abajo)
+  assets/              icono (querencia.ico/.png/.svg) y accesos.ps1 (accesos directos con icono)
   workspace.py         modo proyecto: estructura, herramientas de texto (<leer/>, <editar>…), copias y /deshacer
   zero.py              Prompt-Zero (/zero): cuestionario → plan → tareas
   webkit/              57 componentes web (.lai → index.html + css + js); assets/core.js lleva todo el JS,
@@ -78,6 +80,11 @@ proyecto), transcripciones/, proyectos/ (/zero) y crash.log.
 - Respeta el estilo del código: módulos pequeños, funciones con docstring breve en español y sin
   dependencias nuevas salvo que sea necesario.
 
+## Identidad
+- **Identidad**: nombre «Querencia», lema «tu IA, en casa», degradado violeta `#7c3aed` → cian `#06b6d4` e
+  icono de chip con casa. Úsalos en textos visibles nuevos (banner `render.LOGO`/`TAGLINE`, títulos, asistente).
+  No renombres `localai/`, `local_ai.py` ni `~/.local_ai/`: romperían datos y rutas de los usuarios.
+
 ## Particularidades técnicas (no las «arregles» sin entenderlas)
 - **Consola de Windows**: `suppress_stdout_stderr` de llama-cpp hace `dup2` y cierra el handle de la
   consola (NoConsoleScreenBufferError tras una respuesta con visión). Por eso está el parche `_NoRedirect`
@@ -89,6 +96,15 @@ proyecto), transcripciones/, proyectos/ (/zero) y crash.log.
   `projector_type`), no por nombre.
 - **Lector visual** (`vision_mode="lector"`): el modelo principal puede no tener visión. Un VLM temporal
   transcribe imágenes y PDFs escaneados con un prompt maestro, y el resultado se guarda en caché.
+- **GPU (detección unificada, NVIDIA/AMD/Intel)**: todo pasa por `localai/gpu.py`; no leas la VRAM por tu
+  cuenta. Orden: NVML → nvidia-smi → registro de Windows (`HardwareInformation.qwMemorySize`, el adaptador
+  con más VRAM; se ignoran integradas de menos de 1 GB y adaptadores virtuales). La VRAM libre de AMD/Intel
+  sale del contador «GPU Adapter Memory\Dedicated Usage» leído con PDH (`PdhAddEnglishCounterW`: nombre en
+  inglés aunque Windows esté en otro idioma; sin procesos ni ventanas), cacheado ~2 s; si no se puede
+  leer, libre = total − margen y `SysMem.free_estimated` (los mensajes lo dicen). El total se resuelve una
+  vez por sesión. Para probar sin la tarjeta, simula `_nvml_read`, `_smi_read`, `_registry_adapters` y
+  `_pdh_dedicated_usage` y llama a `gpu.reset()`. Los consejos para instalar el motor según el fabricante
+  están en `gpu.engine_advice()` (con AMD/Intel, el pip normal es solo CPU: hace falta Vulkan).
 - **Memoria**: la estimación depende de la arquitectura (qwen35 híbrido SSM, Gemma SWA, KV compartido de
   gemma3n). `ngl` cuenta primero la capa de salida.
 - **Relevo** (`relay.py` + `App.relay_chain`), automático y sin comando:

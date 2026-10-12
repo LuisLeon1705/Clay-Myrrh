@@ -3,8 +3,8 @@ Asistente de instalación visual: una página web local (solo en 127.0.0.1) que 
 en el navegador. Reutiliza el detector de hardware, el catálogo y el estimador del
 asistente de consola; aquí solo hay la API y la descarga con progreso.
 
-    querencia --setup          (lo abre instalar-querencia.bat)
-    querencia --setup-cli      (versión de consola, por si no hay navegador)
+    clay-myrrh --setup          (lo abre instalar-clay-myrrh.bat)
+    clay-myrrh --setup-cli      (versión de consola, por si no hay navegador)
 """
 
 from __future__ import annotations
@@ -261,7 +261,7 @@ def make_handler(app: Setup, stop: threading.Event):
                 html = (UI_DIR / "index.html").read_text(encoding="utf-8").replace("{{TOKEN}}", app.token)
                 return self._send(200, html, "text/html")
             if path == "/favicon.ico":
-                return self._send(200, (Path(__file__).parent / "assets" / "querencia.ico").read_bytes(), "image/x-icon")
+                return self._send(200, (Path(__file__).parent / "assets" / "clay-myrrh.ico").read_bytes(), "image/x-icon")
             static = {".css": "text/css", ".js": "application/javascript", ".svg": "image/svg+xml"}
             name = path[1:]
             if "/" not in name and Path(name).suffix in static and (UI_DIR / name).is_file():
@@ -320,7 +320,7 @@ def run_gui(port: int = 0, open_browser: bool = True) -> bool:
     srv = ThreadingHTTPServer(("127.0.0.1", port), make_handler(app, stop))
     url = f"http://127.0.0.1:{srv.server_address[1]}/"
     threading.Thread(target=srv.serve_forever, daemon=True).start()
-    say(f"\n  [accent]Querencia · asistente de instalación abierto en tu navegador[/]\n  {url}\n"
+    say(f"\n  [accent]Clay-Myrrh · asistente de instalación abierto en tu navegador[/]\n  {url}\n"
         f"  [dim]Si no se abrió solo, copia esa dirección en el navegador. No cierres esta ventana hasta "
         f"terminar (Ctrl+C para salir).[/]\n")
     if open_browser:

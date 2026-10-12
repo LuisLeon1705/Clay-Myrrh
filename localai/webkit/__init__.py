@@ -142,7 +142,7 @@ def render(source: str) -> tuple[str, str, str, Report]:
            + (f'<meta name="description" content="{E(desc)}">\n' if desc else "")
            + f'{font_link}\n<link rel="stylesheet" href="css/styles.css">\n</head>\n'
            f'<body{" class=\"dashboard\"" if dashboard else ""}>\n{html_body}\n<script src="js/app.js" defer></script>\n'
-           f'<!-- Generado con Querencia a partir de pagina.lai: edita ese archivo y se regenera -->\n</body>\n</html>\n')
+           f'<!-- Generado con Clay-Myrrh a partir de pagina.lai: edita ese archivo y se regenera -->\n</body>\n</html>\n')
     rep.components = used
     rep.warnings += ctx.warnings
     return doc, css, js, rep

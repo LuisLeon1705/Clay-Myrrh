@@ -1,4 +1,4 @@
-/* Querencia · guía paso a paso (pasos cortos que avanzan solos), comparativa local/nube y galería de componentes.
+/* Clay-Myrrh · guía paso a paso (pasos cortos que avanzan solos), comparativa local/nube y galería de componentes.
    Las mascotas son ilustraciones propias inspiradas en el estilo de cada servicio, no logotipos oficiales.
    Precios orientativos (octubre de 2026, fuentes de terceros): cambian a menudo, verifica antes de pagar. */
 (() => {
@@ -79,7 +79,7 @@
       limits: "Cupos por ventanas de 5 h según el plan", privacy: "Tus datos van a OpenAI (según tu configuración)",
       offline: "No", runs: "Centros de datos de OpenAI" },
     { k: "local", entry: "0 $/mes (ya descargada)", plans: "Solo el equipo y la luz (≈ 2–15 $/mes según uso)",
-      cli: "Querencia (este programa), Ollama, llama.cpp…", strong: "Privacidad total, sin internet, sin límites ni cuotas, siempre el mismo modelo",
+      cli: "Clay-Myrrh (este programa), Ollama, llama.cpp…", strong: "Privacidad total, sin internet, sin límites ni cuotas, siempre el mismo modelo",
       limits: "Los que ponga tu hardware: tamaño del modelo, velocidad y contexto", privacy: "Nada sale de tu ordenador",
       offline: "Sí", runs: "Tu PC" },
   ];
@@ -397,10 +397,10 @@
     if (!compData) {
       box.innerHTML = '<p class="muted">Cargando componentes…</p>';
       try { compData = await window.LAI.api("/api/components"); }
-      catch { box.innerHTML = '<div class="card">El asistente ya se cerró. Para ver los componentes usa <code>/componentes demo</code> en Querencia.</div>'; return; }
+      catch { box.innerHTML = '<div class="card">El asistente ya se cerró. Para ver los componentes usa <code>/componentes demo</code> en Clay-Myrrh.</div>'; return; }
     }
     box.innerHTML = `<div class="cmp-hero"><div><span class="eyebrow">Componentes prediseñados</span><h2>${compData.total} piezas listas para tus webs</h2>
-      <p class="lead">La IA solo escribe etiquetas como <code>&lt;menu&gt;</code> o <code>&lt;wizard&gt;</code> con el contenido, y Querencia genera el HTML, el CSS y el JavaScript ya probados.
+      <p class="lead">La IA solo escribe etiquetas como <code>&lt;menu&gt;</code> o <code>&lt;wizard&gt;</code> con el contenido, y Clay-Myrrh genera el HTML, el CSS y el JavaScript ya probados.
       Así gasta unas 4 veces menos tokens y el diseño nunca se rompe. Úsalos con <code>/plantilla</code>, con <code>/zero</code> o pidiéndole una página en el chat.</p>
       <div class="row" style="flex-wrap:wrap"><a class="btn primary" href="/demo/" target="_blank" rel="noopener">Abrir la demo en otra pestaña ↗</a>
       <input id="comp-q" type="search" placeholder="Buscar componente…" aria-label="Buscar componente" style="max-width:280px"></div></div></div>

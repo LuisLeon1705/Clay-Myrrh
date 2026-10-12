@@ -1,9 +1,9 @@
-# Querencia v4.0 · notas de desarrollo
+# Clay-Myrrh v4.0 · notas de desarrollo
 
 > Antes se llamaba «Local AI». Esta página es el diario técnico; la guía de uso está en README.md.
 
-## Asistente de instalación (`instalar-querencia.bat` o `querencia --setup`)
-Se abre como **página web local en el navegador** (solo en 127.0.0.1): pasos visuales, carriles VRAM/RAM animados, demostración de velocidad que escribe en vivo a N tokens/s, tarjetas por nivel con el reparto GPU/RAM dibujado, glosario (token, VRAM, MoE, cuantización, mmproj…) y descarga con barras de progreso, pausa y reanudación. `querencia --setup-cli` (o `/setup cli`) abre la versión de consola.
+## Asistente de instalación (`instalar-clay-myrrh.bat` o `clay-myrrh --setup`)
+Se abre como **página web local en el navegador** (solo en 127.0.0.1): pasos visuales, carriles VRAM/RAM animados, demostración de velocidad que escribe en vivo a N tokens/s, tarjetas por nivel con el reparto GPU/RAM dibujado, glosario (token, VRAM, MoE, cuantización, mmproj…) y descarga con barras de progreso, pausa y reanudación. `clay-myrrh --setup-cli` (o `/setup cli`) abre la versión de consola.
 
 1. Comprueba Python y las librerías (las instala con pip si aceptas).
 2. Lee tu hardware: CPU (núcleos, GHz), RAM (GB, tipo, **MT/s**, canales), GPU (VRAM y ancho de banda) y
@@ -13,7 +13,7 @@ Se abre como **página web local en el navegador** (solo en 127.0.0.1): pasos vi
 4. Para cada uso ves los niveles **Básico / Moderado / Extensivo**, cada uno con el modelo que corresponde a
    TU equipo, su tamaño, dónde corre (GPU, GPU+RAM o CPU), la velocidad aproximada en t/s y cuándo te
    conviene más una IA en la nube como Claude. También puedes reutilizar un modelo que ya tengas.
-5. Guarda el plan, descarga lo elegido (`querencia --download`, se puede reanudar) y deja la configuración:
+5. Guarda el plan, descarga lo elegido (`clay-myrrh --download`, se puede reanudar) y deja la configuración:
    modelo principal, lector visual y un perfil por uso. Con `/modo programacion` (o la categoría que sea)
    cambias de modelo y ajustes.
 
@@ -67,22 +67,42 @@ Cada respuesta reserva un 15 % de `/tokens` (ajustable 10–25 % en `/settings`)
 - Prueba simulada (RX 6800 + integrada de 512 MB): 33/33 capas del 9B en GPU, 25/41 del 35B MoE; `/doctor`
   explica cómo conseguir el motor Vulkan si el instalado es solo CPU. La RTX 3070 real sigue por NVML.
 
+## Red del proyecto y Clay-Myrrh.md (octubre 2026)
+- `/grafo` genera una red del proyecto al estilo de Graphify, sin modelo. Incluye una línea por archivo con
+  sus conexiones y avisos de piezas que no encajan, y la guarda en `Clay-Myrrh.md`. Ese archivo sustituye
+  a `LOCAL_AI.md`, que se sigue leyendo.
+- Motivo: en la cadena del Tablón, el paso de revisión no detectó un router montado sin prefijo, una tabla
+  `session` con columnas inventadas, un `package.json` en `src/` ni un `csrfToken` que no llegaba a las
+  vistas. Los avisos de la red detectan los cuatro.
+- Robustez del modo proyecto (vista en la prueba): un bloque sin cerrar ya no se traga el siguiente, los
+  bloques que solo traen ediciones no se escriben como archivo, «borro y reescribo» no acaba borrando, un
+  README con bloques dentro no se corta y se acepta `<crear ruta="x">…</crear>`.
+- `clay-myrrh --grafo carpeta` genera la red sin cargar modelo.
+- `project_context=grafo` (por defecto): la red sustituye al árbol y ya no se adjuntan todos los archivos,
+  así que la primera petición en un proyecto mediano gasta bastantes menos tokens.
+
+## Cadenas de prompts (octubre 2026)
+- `/cadena archivo` y `--cadena archivo`: varios prompts separados por `---` que se ejecutan seguidos, con
+  parada si un paso falla, reanudación con `desde N` e informe en `~/.local_ai/cadenas/`. Primera prueba
+  real: la app «Tablón» (Express + PostgreSQL + Docker, login y comentarios) en 4 pasos, en modo proyecto.
+
 ## Capas reales en la GPU (octubre 2026)
-- Caso real: RX 6800 con todo en RAM y ~1 GB de VRAM al cargar Qwen 27B/30B. Querencia mostraba las capas
+- Caso real: RX 6800 con todo en RAM y ~1 GB de VRAM al cargar Qwen 27B/30B. Clay-Myrrh mostraba las capas
   *planificadas* y además guardaba una calibración falsa (0,8). Ahora lee el log de llama.cpp
   (`ggml_vulkan: … uma`, `using device … MiB free`, `offloaded N/M layers`): el mensaje de «listo» muestra las
   capas reales y, si quedaron muchas menos de las previstas, explica la causa (motor solo CPU → cómo conseguir
   Vulkan; Vulkan que solo ve la integrada → controlador / GGML_VK_VISIBLE_DEVICES; poca VRAM libre). Si el
   motor es solo CPU, avisa también antes de cargar.
 
-## Querencia: nombre e icono (octubre 2026)
-- El proyecto pasa a llamarse **Querencia** («tu IA, en casa»), versión 4.0. Lanzador `querencia.cmd`
-  (con `local-ai.cmd` como alias), instalador `instalar-querencia.bat` y accesos directos con icono.
-- Icono generado con Pillow (`localai/assets/querencia.ico`, 16–256 px; sin patillas en 16–32 px para que
+## Nombre e icono (octubre 2026)
+- «Local AI» pasó a llamarse **Querencia** y después **Clay-Myrrh** («tu IA, en casa»; arcilla que se
+  moldea y mirra que se guarda), versión 4.0. Lanzador `clay-myrrh.cmd` (los alias
+  `querencia.cmd` y `local-ai.cmd` se quitaron antes del primer release), instalador `instalar-clay-myrrh.bat` y accesos directos con icono.
+- Icono generado con Pillow (`localai/assets/clay-myrrh.ico`, 16–256 px; sin patillas en 16–32 px para que
   se lea en la barra de tareas) y el mismo dibujo en SVG como favicon del asistente.
 
 ## Asistente con guía y comparativa · 57 componentes (octubre 2026)
-- `instalar-querencia.bat`: antes de instalar se abre una guía paso a paso (pasos cortos que avanzan solos) con Claude, Gemini,
+- `instalar-clay-myrrh.bat`: antes de instalar se abre una guía paso a paso (pasos cortos que avanzan solos) con Claude, Gemini,
   Codex y la IA local. Enlaces directos: `#guia-3`, `#comparativa`, `#componentes`, `#instalacion`.
 - Precios a octubre de 2026 de fuentes de terceros (verificar): Claude Pro 20 $ · Max 100/200 $; Gemini AI Plus
   4,99 $ (modelos Flash) · AI Pro 19,99 $ en adelante para el resto; Codex con ChatGPT Go 8 $ · Plus 20 $ · Pro 100/200 $.
@@ -95,7 +115,7 @@ Cada respuesta reserva un 15 % de `/tokens` (ajustable 10–25 % en `/settings`)
 - Componentes probados con Edge sin ventana: 21/21 comprobaciones nuevas + 15/15 anteriores.
 
 ## Modo proyecto y plantillas (octubre 2026)
-- `/proyecto <carpeta>` o `querencia -d <carpeta>`: el modelo edita esa carpeta directamente. Detalles en el
+- `/proyecto <carpeta>` o `clay-myrrh -d <carpeta>`: el modelo edita esa carpeta directamente. Detalles en el
   README («Modo proyecto»). Prueba con el 4B en CPU: título, color y alerta en 3 archivos, aplicados en un
   solo turno. El modelo escribió los pares BUSCAR/REEMPLAZAR sin `<editar>` y el programa dedujo cada archivo
   por su contenido.
@@ -131,10 +151,10 @@ el código a otra carpeta. Si la respuesta se corta por longitud, el archivo se 
 - `/help` por categorías y menú `/settings`.
 
 ```
-querencia                      # interactivo (último modelo usado)
-querencia -m Qwen2-VL-2B       # elegir modelo (nombre parcial, ruta .gguf o modelo de Ollama "llava:7b")
-querencia "pregunta" -p doc.pdf -i foto.png -f code.py   # one-shot
-querencia --list | --doctor | --mem -m <modelo> --ctx 16k
+clay-myrrh                      # interactivo (último modelo usado)
+clay-myrrh -m Qwen2-VL-2B       # elegir modelo (nombre parcial, ruta .gguf o modelo de Ollama "llava:7b")
+clay-myrrh "pregunta" -p doc.pdf -i foto.png -f code.py   # one-shot
+clay-myrrh --list | --doctor | --mem -m <modelo> --ctx 16k
 ```
 
 Opciones de una sola ejecución (no se guardan): `--ctx n|32k|auto`, `--gpu n|auto|max`, `--kv f16|q8_0|q4_0`,
@@ -217,7 +237,7 @@ Causas y arreglos:
 | `!cmd` · `!!cmd` | shell (PowerShell) · y añadir la salida al contexto; `!cd ruta` cambia de directorio | `!!git status` + "resúmelo" |
 | `/compact [instr.]` | resume la conversación (no la toca si el resumen no ahorra) | tras varios turnos: `/compact` |
 | `/chat save\|list\|load\|delete` · `/resume` | sesiones con nombre · selector que incluye las autoguardadas | `/chat save p1`, `/clear`, `/resume` |
-| `/memory show\|add\|addp\|edit\|reload\|path` | `LOCAL_AI.md` global (`~/.local_ai`) o del proyecto | `/memory add Responde siempre en español` |
+| `/memory show\|add\|addp\|edit\|reload\|path` | `Clay-Myrrh.md` global (`~/.local_ai`) o del proyecto | `/memory add Responde siempre en español` |
 | `/stats` | tokens de entrada/salida, t/s, tiempos, VRAM real vs estimada | `/stats` |
 | *(automático)* | si el modelo crea un archivo (```` ```html index.html ````, o nombras el archivo/tipo en tu mensaje: "crea index.html", "hazme un html"), ofrece guardarlo; nunca fuera del directorio actual | `crea un archivo saludo.html con un saludo centrado` → `s` |
 | `/save [ruta] [nº]` | guarda un bloque de código de la última respuesta (el mayor, o el nº indicado) | `/save calculadora.html` · `/save ejemplo.py 2` |

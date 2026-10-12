@@ -158,9 +158,9 @@ def mini_bar(ratio: float, width: int = 8) -> str:
 # Banner (estilo Gemini CLI: logo con degradado + consejos)
 # ---------------------------------------------------------------------------
 
-LOGO = ["█▀█ █ █ █▀▀ █▀█ █▀▀ █▄ █ █▀▀ █ ▄▀█",
-        "▀▀█ █▄█ ██▄ █▀▄ ██▄ █ ▀█ █▄▄ █ █▀█"]
-NAME, TAGLINE = "Querencia", "tu IA, en casa"
+LOGO = ["█▀▀ █   ▄▀█ █▄█ ▄▄ █▀▄▀█ █▄█ █▀█ █▀█ █ █",
+        "█▄▄ █▄▄ █▀█  █     █ ▀ █  █  █▀▄ █▀▄ █▀█"]
+NAME, TAGLINE = "Clay-Myrrh", "tu IA, en casa"
 
 
 def _hex(c: str) -> tuple[int, int, int]:

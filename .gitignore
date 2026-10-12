@@ -33,6 +33,8 @@ crash.log
 /css/
 /js/
 /documentos/
+# la web que monta el workflow de GitHub Pages (.github/workflows/pages.yml)
+/_site/
 
 # --- Editores y sistema ---
 *.lnk

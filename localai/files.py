@@ -69,7 +69,9 @@ def _path_from_info(info: str) -> tuple[str, str | None]:
     info = info.strip()
     if not info:
         return "", None
-    m = re.match(r'^([\w+#.\-]*)\s*[: ]\s*(?:title|file|filename|path)?\s*=?\s*["\']?(' + _NAME + r')["\']?\s*$', info)
+    # ```md # README.md · ```js // src/a.js: el modelo a veces pone la ruta como comentario
+    m = re.match(r'^([\w+#.\-]*)\s*[: ]\s*(?:(?:#|//|--)\s*)?(?:title|file|filename|path)?\s*=?\s*["\']?('
+                 + _NAME + r')["\']?\s*$', info)
     if m:
         return m.group(1), m.group(2)
     m = re.match(r"^(" + _NAME + r")$", info)      # solo la ruta: ```index.html
@@ -91,9 +93,26 @@ def extract_blocks(text: str) -> list[Block]:
         lang, path = _path_from_info(info)
         body = []
         j = i + 1
+        nested = False
+        markdown = lang.lower() in ("md", "markdown") or (path or "").lower().endswith(".md")
+        inner = 0   # bloques abiertos dentro de un Markdown (```bash … ``` dentro del README)
         while j < len(lines):
             m2 = _FENCE.match(lines[j])
-            if m2 and m2.group("fence")[0] == fence[0] and len(m2.group("fence")) >= len(fence) and not m2.group("info").strip():
+            same = m2 and m2.group("fence")[0] == fence[0] and len(m2.group("fence")) >= len(fence)
+            if markdown and same:
+                inner += 1 if m2.group("info").strip() else -1
+                if inner >= 0:
+                    body.append(lines[j])
+                    j += 1
+                    continue
+                break
+            if same and not m2.group("info").strip():
+                break
+            # otro bloque CON RUTA dentro de uno abierto: el modelo olvidó cerrar el anterior
+            # (salvo en Markdown, que sí puede llevar bloques dentro)
+            if (m2 and not markdown and m2.group("info").strip()
+                    and _path_from_info(m2.group("info"))[1]):
+                nested = True
                 break
             body.append(lines[j])
             j += 1
@@ -116,8 +135,10 @@ def extract_blocks(text: str) -> list[Block]:
                 body = body[1:]
             elif com and path is None:
                 path = com.group(1)
+        while nested and body and not body[-1].strip():
+            body.pop()
         blocks.append(Block(lang, "\n".join(body), path, len(blocks) + 1, closed=j < len(lines)))
-        i = j + 1
+        i = j if nested else j + 1
     named = {b.path for b in blocks if b.path}
     for h in extract_heredocs(text):
         if h.path in named:

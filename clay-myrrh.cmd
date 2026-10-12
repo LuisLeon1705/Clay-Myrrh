@@ -1,3 +1,3 @@
 @echo off
-title Querencia
+title Clay-Myrrh
 python "%~dp0local_ai.py" %*

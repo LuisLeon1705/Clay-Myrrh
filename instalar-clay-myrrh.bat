@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 >nul
 setlocal
-title Querencia - Asistente de instalacion
+title Clay-Myrrh - Asistente de instalacion
 cd /d "%~dp0"
 echo.
-echo   Querencia - tu IA, en casa
-echo   ==========================
+echo   Clay-Myrrh - tu IA, en casa
+echo   ===========================
 echo   Asistente de instalacion
 echo.
 
@@ -54,7 +54,7 @@ echo.
 echo   No se pudo abrir la version visual. Abriendo la version de consola...
 python -X utf8 "%~dp0local_ai.py" --setup-cli
 echo.
-echo   Para empezar a usarlo:  acceso directo "Querencia" o querencia.cmd
-echo   Para descargar lo elegido mas tarde:  querencia --download
+echo   Para empezar a usarlo:  acceso directo "Clay-Myrrh" o clay-myrrh.cmd
+echo   Para descargar lo elegido mas tarde:  clay-myrrh --download
 echo.
 pause

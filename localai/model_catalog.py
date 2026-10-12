@@ -1,5 +1,5 @@
 """
-Catálogo curado para el asistente de instalación (querencia --setup).
+Catálogo curado para el asistente de instalación (clay-myrrh --setup).
 
 Repositorios y tamaños verificados en la API de Hugging Face (octubre de 2026). Los
 archivos exactos se resuelven al descargar (pueden venir divididos en partes).

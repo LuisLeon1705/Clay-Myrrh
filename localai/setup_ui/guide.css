@@ -1,4 +1,4 @@
-/* Querencia · guía paso a paso, comparativa y galería de componentes */
+/* Clay-Myrrh · guía paso a paso, comparativa y galería de componentes */
 
 /* --- pestañas de la cabecera --- */
 .tabs { display: flex; gap: .3rem; padding: .25rem; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }

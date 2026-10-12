@@ -1,4 +1,4 @@
-/* Querencia · asistente de instalación visual */
+/* Clay-Myrrh · asistente de instalación visual */
 (() => {
   "use strict";
   const TOKEN = document.querySelector('meta[name="setup-token"]').content;
@@ -22,7 +22,7 @@
     mts: ["MT/s y canales", "La velocidad de la RAM (p. ej. DDR4-3600 = 3600 MT/s). Con dos módulos en doble canal el ancho de banda se duplica; por eso conviene poner la RAM por pares."],
     moe: ["MoE (mezcla de expertos)", "Modelos con muchos parámetros que solo usan una parte para cada token (p. ej. 35B en total, 3B activos). Piensan como uno grande y escriben casi tan rápido como uno pequeño: ideales si tienes poca VRAM."],
     quant: ["Cuantización (Q4, Q8…)", "Comprimir el modelo guardando cada número con menos bits. Q4 ocupa ≈¼ del original y pierde muy poca calidad; Q8 es casi idéntico al original pero ocupa el doble que Q4."],
-    mmproj: ["mmproj (el «ojo»)", "Un archivo extra que permite a un modelo ver imágenes. Querencia usa un modelo con ojo como «lector» para transcribir fotos y PDFs escaneados, y tu modelo principal trabaja con ese texto."],
+    mmproj: ["mmproj (el «ojo»)", "Un archivo extra que permite a un modelo ver imágenes. Clay-Myrrh usa un modelo con ojo como «lector» para transcribir fotos y PDFs escaneados, y tu modelo principal trabaja con ese texto."],
     context: ["Contexto", "La memoria de la conversación, medida en tokens. Más contexto permite documentos más largos, pero ocupa más memoria."],
     params: ["Parámetros (B)", "El tamaño del «cerebro» del modelo en miles de millones. Más parámetros suelen dar mejores respuestas, pero ocupan más y van más lentos."],
     cloud: ["Local o nube", "Los modelos locales son privados, gratuitos y sin internet. Las IA en la nube (como Claude) siguen siendo mejores en tareas largas y complejas: proyectos grandes de código, documentos de cientos de páginas o razonamiento muy preciso."],
@@ -240,9 +240,9 @@
       const pct = s.disk_free ? Math.min(100, s.total / s.disk_free * 100) : 0;
       $("#sum-disk").innerHTML = s.total ? `<div style="margin-top:1rem"><div class="row between small"><span>Total: <b>${gb(s.total)}</b></span><span class="muted">libre en disco: ${gb(s.disk_free)}</span></div>
         <div class="bar"><span style="width:${pct.toFixed(1)}%"></span></div><p class="muted small" style="margin-top:.5rem">≈ ${Math.max(1, Math.round(s.total / (50 * 1024 ** 2) / 60))} min a 50 MB/s</p>
-        <button class="link small" id="save-only" type="button">Solo guardar el plan (descargar luego con querencia --download)</button></div>` : "";
+        <button class="link small" id="save-only" type="button">Solo guardar el plan (descargar luego con clay-myrrh --download)</button></div>` : "";
       $("#save-only")?.addEventListener("click", async () => { await api("/api/summary", { hw: S.hw, choices: ch, primary: S.primary });
-        $("#nav-hint").textContent = "Plan guardado. Ejecuta «querencia --download» cuando quieras."; });
+        $("#nav-hint").textContent = "Plan guardado. Ejecuta «clay-myrrh --download» cuando quieras."; });
       $("#next").textContent = s.total ? "Descargar y configurar →" : "Aplicar configuración →";
       $("#next").disabled = !Object.keys(ch).length || !!s.error;
       if (s.total > s.disk_free) { $("#next").disabled = true; $("#nav-hint").textContent = "No hay espacio suficiente en el disco"; }
@@ -280,7 +280,7 @@
     const ch = chosen(), cats = S.state.categories;
     const prim = S.primary ? modelInfo(S.primary, ch[S.primary]) : null;
     const lec = ch.lectura ? modelInfo("lectura", ch.lectura) : null;
-    $("#done-text").innerHTML = `Abre <b>Querencia</b> con el acceso directo o con <code>querencia.cmd</code>.` + (prim ? ` Se cargará <b>${esc(prim.name)}</b> (${esc(cats.find((c) => c.key === S.primary).name)}).` : "")
+    $("#done-text").innerHTML = `Abre <b>Clay-Myrrh</b> con el acceso directo o con <code>clay-myrrh.cmd</code>.` + (prim ? ` Se cargará <b>${esc(prim.name)}</b> (${esc(cats.find((c) => c.key === S.primary).name)}).` : "")
       + (lec ? ` Las imágenes y PDFs escaneados los leerá <b>${esc(lec.name)}</b>.` : "");
     const profiles = Object.keys(ch).filter((k) => k !== "lectura").map((k) => `<code>/modo ${k}</code>`).join(" · ");
     $("#cheats").innerHTML = [
@@ -289,7 +289,7 @@
       ["🧱", "Crear una web", "<code>/plantilla</code> · <code>/zero</code>", "57 componentes prediseñados: menos tokens y diseño probado (<code>/componentes demo</code>)."],
       ["❓", "Ayuda", "<code>/help</code> · <code>?</code>", "Todos los comandos y atajos de teclado."],
       ["⚙️", "Ajustes", "<code>/settings</code>", "Tema, razonamiento, visión, tokens…"],
-      ["🧭", "Volver aquí", "<code>instalar-querencia.bat</code>", "Para añadir usos o cambiar de nivel."],
+      ["🧭", "Volver aquí", "<code>instalar-clay-myrrh.bat</code>", "Para añadir usos o cambiar de nivel."],
     ].map(([i, t, c, d]) => `<div class="card cheat"><div class="ficon" style="font-size:1.6rem">${i}</div><h3>${t}</h3><p>${c}</p><p class="muted small">${d}</p></div>`).join("");
     show(6);
     // instalación terminada: se apaga el asistente y se cierra su ventana de consola

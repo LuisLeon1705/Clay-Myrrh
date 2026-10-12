@@ -1,6 +1,6 @@
-# Querencia: guía para agentes
+# Clay-Myrrh: guía para agentes
 
-**Querencia** («tu IA, en casa»; antes «Local AI»): CLI de IA local en Python (estilo Claude Code / Gemini CLI) que ejecuta modelos GGUF con llama-cpp-python
+**Clay-Myrrh** («tu IA, en casa»; antes «Querencia» y «Local AI»): CLI de IA local en Python (estilo Claude Code / Gemini CLI) que ejecuta modelos GGUF con llama-cpp-python
 o con Ollama. Lee imágenes y PDFs, crea archivos y encadena respuestas largas con el «relevo».
 La interfaz y los textos son **en español**. Guía de uso completa: `README.md`. Diagnósticos e historial
 de decisiones: `LEEME.md`.
@@ -14,7 +14,7 @@ de decisiones: `LEEME.md`.
 
 ## Comandos
 ```bash
-python local_ai.py                      # REPL (equivale a querencia.cmd)
+python local_ai.py                      # REPL (equivale a clay-myrrh.cmd)
 python local_ai.py --doctor             # diagnóstico: dependencias, backend GPU, modelos, mmproj
 python local_ai.py --list               # modelos encontrados
 python local_ai.py --mem -m <modelo>    # estimación de VRAM/RAM sin cargar
@@ -22,6 +22,7 @@ python local_ai.py -m <modelo> "pregunta"   # one-shot
 python local_ai.py --setup              # asistente visual (navegador, 127.0.0.1)
 python local_ai.py --setup-cli          # asistente en consola
 python local_ai.py -d <carpeta>         # abrir una carpeta como proyecto
+python local_ai.py --grafo <carpeta>    # red del proyecto en Clay-Myrrh.md, sin cargar modelo
 python -c "from localai import app"     # comprobación rápida de imports
 ```
 No hay suite de tests formal. Prueba con scripts propios y **aísla la configuración** apuntando
@@ -30,8 +31,8 @@ No hay suite de tests formal. Prueba con scripts propios y **aísla la configura
 ## Estructura
 ```
 local_ai.py            entrada mínima → localai.app.main
-querencia.cmd          lanzador de Windows (local-ai.cmd = alias del nombre anterior)
-instalar-querencia.bat comprueba Python y dependencias, crea los accesos directos y abre el asistente
+clay-myrrh.cmd         lanzador de Windows
+instalar-clay-myrrh.bat comprueba Python y dependencias, crea los accesos directos y abre el asistente
 localai/
   app.py               REPL, comandos (/model, /settings…), run_generation, relay_chain
   config.py            rutas, dataclass Settings, migraciones (settings_version), TRANSIENT
@@ -48,8 +49,9 @@ localai/
   reader.py            «lector» visual: un VLM transcribe para un modelo de texto (con caché)
   files.py             extracción de bloques/archivos de las respuestas y autoguardado
   relay.py             relevo automático (ver abajo)
-  assets/              icono (querencia.ico/.png/.svg) y accesos.ps1 (accesos directos con icono)
-  workspace.py         modo proyecto: estructura, herramientas de texto (<leer/>, <editar>…), copias y /deshacer
+  assets/              icono (clay-myrrh.ico/.png/.svg) y accesos.ps1 (accesos directos con icono)
+  workspace.py         modo proyecto: estructura, herramientas de texto (<leer/>, <editar>, <crear>…), copias y /deshacer
+  grafo.py             red del proyecto (/grafo): archivos, conexiones y avisos sin modelo; va en Clay-Myrrh.md
   zero.py              Prompt-Zero (/zero): cuestionario → plan → tareas
   webkit/              57 componentes web (.lai → index.html + css + js); assets/core.js lleva todo el JS,
                        assets/demo.lai es el escaparate; parser.py corrige errores típicos de modelos pequeños
@@ -59,8 +61,9 @@ localai/
 models/                llm/ · vision/ · mmproj/ · diffusion/ (los .gguf NO van al repositorio)
 ```
 Estado del usuario (fuera del repositorio): `~/.local_ai/` contiene config.json, sessions/,
-archivos/ (lo que crea el modelo), relevos/ (registros de cadenas), respaldos/ (copias del modo
-proyecto), transcripciones/, proyectos/ (/zero) y crash.log.
+archivos/ (lo que crea el modelo), relevos/ (registros del relevo), cadenas/ (informes de /cadena),
+respaldos/ (copias del modo proyecto), transcripciones/, proyectos/ (/zero), Clay-Myrrh.md (memoria
+global) y crash.log.
 
 ## Reglas
 - **Nunca descargues modelos ni mmproj sin preguntar al usuario.** Recomiéndalos y espera su sí.
@@ -79,7 +82,7 @@ proyecto), transcripciones/, proyectos/ (/zero) y crash.log.
   dependencias nuevas salvo que sea necesario.
 
 ## Identidad
-- **Identidad**: nombre «Querencia», lema «tu IA, en casa», degradado violeta `#7c3aed` → cian `#06b6d4` e
+- **Identidad**: nombre «Clay-Myrrh» (antes «Querencia»), lema «tu IA, en casa», degradado violeta `#7c3aed` → cian `#06b6d4` e
   icono de chip con casa. Úsalos en textos visibles nuevos (banner `render.LOGO`/`TAGLINE`, títulos, asistente).
   No renombres `localai/`, `local_ai.py` ni `~/.local_ai/`: romperían datos y rutas de los usuarios.
 
@@ -133,6 +136,17 @@ proyecto), transcripciones/, proyectos/ (/zero) y crash.log.
   `pause` si todo fue bien, así la ventana se cierra sola.
 - **Precios del asistente**: los de Claude/Gemini/Codex y del hardware de guide.js son orientativos y con fecha; si los
   actualizas, cambia también `DATE`. Las mascotas son ilustraciones propias, no logotipos oficiales.
+- **Red del proyecto** (`grafo.py`, `/grafo`): análisis estático sin dependencias (regex + `ast`) que da una
+  línea por archivo y «avisos» de piezas que no encajan. Va al prompt de sistema al abrir el proyecto
+  (`Workspace.instructions`, fijo para no romper la caché de prefijo del motor); después solo se envían los
+  cambios (`Workspace.graph_delta`). Con `project_context=grafo`, `fresh_context` adjunta solo lo conocido
+  que cambió y lo mencionado (todo si el proyecto ocupa menos de `SMALL_PROJECT`). En `Clay-Myrrh.md` va
+  entre `grafo.MARK_START`/`MARK_END`: se actualiza al terminar cada turno con cambios, y
+  `grafo.strip_section` la quita de la memoria en modo proyecto para no duplicarla. Si añades una
+  comprobación, que nunca dé falsos positivos en este repositorio (`/grafo avisos` aquí debe salir vacío).
+- **Cadenas** (`/cadena`, `--cadena`): `App.run_chain` envía cada paso con `send()` como si se tecleara;
+  un paso falla si no se añade una respuesta al historial o `last_stopped` (Esc). Separador: línea `---`
+  (`chain_steps`). Informe en `~/.local_ai/cadenas/`. `handle_command` acepta argumentos de varias líneas.
 - **Archivos del modelo**: se guardan solos en `~/.local_ai/archivos/<sesión>/`. La ruta puede ir en la
   cabecera del bloque o en su primera línea, y también se extraen heredocs y `tool_call`.
 - El rendimiento varía mucho si un juego o Wallpaper Engine ocupa la GPU: eso no es un bug del código.

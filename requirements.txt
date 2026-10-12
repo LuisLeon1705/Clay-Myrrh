@@ -1,4 +1,4 @@
-# Dependencias de Querencia (el motor llama-cpp-python se instala aparte: ver LEEME.md / querencia --setup)
+# Dependencias de Clay-Myrrh (el motor llama-cpp-python se instala aparte: ver LEEME.md / clay-myrrh --setup)
 rich>=13
 prompt_toolkit>=3.0.40
 requests>=2.31

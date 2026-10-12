@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clay-Myrrh · tu IA, en casa</title>
+<meta name="description" content="Asistente de IA 100 % local para la terminal, al estilo de Claude Code o Gemini CLI: modelos GGUF con llama.cpp u Ollama, sin internet y sin cuotas.">
+<meta property="og:title" content="Clay-Myrrh · tu IA, en casa">
+<meta property="og:description" content="Asistente de IA 100 % local para la terminal: lee imágenes y PDFs, edita proyectos y funciona sin internet.">
+<meta property="og:image" content="assets/clay-myrrh.png">
+<link rel="icon" href="assets/clay-myrrh.svg" type="image/svg+xml">
+<link rel="alternate icon" href="assets/clay-myrrh.ico">
+<style>
+:root {
+  --bg: #0d0f17; --bg2: #141826; --card: #181d2d; --line: #262c40;
+  --text: #e8eaf2; --muted: #9aa3b8; --violet: #7c3aed; --cyan: #06b6d4;
+  --grad: linear-gradient(120deg, #7c3aed, #06b6d4);
+  --term: #0a0c12; --ok: #34d399; --warn: #fbbf24;
+  --radius: 16px; --max: 1080px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f7f7fb; --bg2: #eef0f7; --card: #ffffff; --line: #dfe3ee;
+    --text: #151826; --muted: #5a6276; --term: #11141d;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f7f7fb; --bg2: #eef0f7; --card: #ffffff; --line: #dfe3ee;
+  --text: #151826; --muted: #5a6276; --term: #11141d; color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text); line-height: 1.6;
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+a { color: inherit; }
+code, pre, .mono { font-family: "Cascadia Code", "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 16px; }
+.grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* cabecera */
+header.top { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--bg) 82%, transparent); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; gap: 12px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; }
+.brand img { width: 28px; height: 28px; }
+nav.links { margin-left: auto; display: flex; gap: 18px; font-size: 15px; }
+nav.links a { text-decoration: none; color: var(--muted); }
+nav.links a:hover { color: var(--text); }
+@media (max-width: 720px) { nav.links .hide-sm { display: none; } }
+
+/* portada */
+.hero { padding: 72px 0 40px; text-align: center; }
+.hero img.logo { width: 96px; height: 96px; filter: drop-shadow(0 10px 30px rgba(124, 58, 237, .35)); }
+.hero h1 { font-size: clamp(40px, 8vw, 72px); line-height: 1.05; margin: 18px 0 8px; letter-spacing: -0.02em; }
+.hero .tag { font-size: clamp(18px, 3vw, 22px); color: var(--muted); margin: 0 auto 28px; max-width: 640px; }
+.btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px;
+  text-decoration: none; font-weight: 600; border: 1px solid var(--line); background: var(--card); }
+.btn.primary { background: var(--grad); color: #fff; border: 0; }
+.btn:hover { transform: translateY(-1px); }
+.pills { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
+.pill { font-size: 13px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+
+/* terminal */
+.term { margin: 44px auto 0; max-width: 820px; background: var(--term); border-radius: var(--radius);
+  border: 1px solid #262c40; box-shadow: 0 30px 80px rgba(0, 0, 0, .35); text-align: left; overflow: hidden; }
+.term .bar { display: flex; gap: 7px; padding: 12px 14px; border-bottom: 1px solid #1e2333; }
+.term .bar i { width: 11px; height: 11px; border-radius: 50%; background: #2c3245; }
+.term pre { margin: 0; padding: 18px 20px 22px; color: #d5d9e6; font-size: 13.5px; line-height: 1.55; overflow-x: auto; }
+.term .logo-txt { display: inline-block; line-height: 1; font-size: 17px; margin-bottom: 6px;
+  background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+@media (max-width: 480px) { .term pre { font-size: 12px; padding: 14px; } .term .logo-txt { font-size: 13px; } }
+.term .dim { color: #7d869c; } .term .u { color: #c4b5fd; } .term .ok { color: var(--ok); } .term .w { color: var(--warn); }
+
+/* secciones */
+section { padding: 64px 0; }
+section.alt { background: var(--bg2); }
+h2 { font-size: clamp(28px, 4.5vw, 38px); line-height: 1.15; margin: 0 0 10px; letter-spacing: -0.01em; }
+.lead { color: var(--muted); max-width: 680px; margin: 0 0 32px; }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+.card h3 { margin: 6px 0 6px; font-size: 18px; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+.ico { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 20px;
+  background: color-mix(in srgb, var(--violet) 16%, transparent); }
+
+/* cifras */
+.stats { display: grid; gap: 12px; grid-template-columns: repeat(3, 1fr); margin-top: 8px; }
+@media (max-width: 480px) { .stats { grid-template-columns: 1fr; } }
+.stat { text-align: center; padding: 22px 12px; }
+.stat b { display: block; font-size: 34px; line-height: 1.1; }
+.stat span { color: var(--muted); font-size: 14px; }
+
+/* pasos */
+ol.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; counter-reset: s; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-items: start; }
+ol.steps li::before { content: counter(s); width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 700; color: #fff; background: var(--grad); }
+ol.steps h3 { margin: 8px 0 4px; font-size: 18px; }
+ol.steps p { margin: 0; color: var(--muted); }
+pre.cmd { background: var(--term); color: #d5d9e6; border-radius: 12px; padding: 14px 16px; overflow-x: auto;
+  font-size: 14px; margin: 10px 0 0; border: 1px solid #262c40; }
+
+/* tabla */
+.table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.table th, .table td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.table th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+.table code { font-size: 14px; white-space: nowrap; }
+.scroll { overflow-x: auto; }
+
+/* demo */
+.demo { display: grid; gap: 24px; grid-template-columns: 1.1fr 1fr; align-items: center; }
+@media (max-width: 820px) { .demo { grid-template-columns: 1fr; } }
+.demo pre.cmd { font-size: 13px; }
+
+footer { padding: 36px 0 48px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); }
+footer .wrap { display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+.theme-btn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px;
+  padding: 6px 12px; cursor: pointer; font: inherit; font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="assets/clay-myrrh.svg" alt=""> Clay-Myrrh</a>
+    <nav class="links">
+      <a href="#funciones" class="hide-sm">Funciones</a>
+      <a href="#instalar">Instalar</a>
+      <a href="#comandos" class="hide-sm">Comandos</a>
+      <a href="demo/">Demo</a>
+      <a href="https://github.com/LuisLeon1705/Local_AI">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero wrap">
+    <img class="logo" src="assets/clay-myrrh.svg" alt="Icono de Clay-Myrrh: un chip con una casa">
+    <h1><span class="grad">Clay-Myrrh</span></h1>
+    <p class="tag"><strong>Tu IA, en casa.</strong> Un asistente de IA 100&nbsp;% local para la terminal, al estilo de
+      Claude Code o Gemini CLI. Sin internet, sin cuotas y sin que tus datos salgan de tu equipo.</p>
+    <div class="btns">
+      <a class="btn primary" href="#instalar">Instalar en Windows</a>
+      <a class="btn" href="https://github.com/LuisLeon1705/Local_AI">Ver el código</a>
+      <a class="btn" href="demo/">Demo de componentes</a>
+    </div>
+    <div class="pills">
+      <span class="pill">llama.cpp · Ollama</span><span class="pill">modelos GGUF</span>
+      <span class="pill">NVIDIA · AMD · Intel</span><span class="pill">en español</span>
+    </div>
+
+    <div class="term" aria-label="Ejemplo de sesión en la terminal">
+      <div class="bar"><i></i><i></i><i></i></div>
+<pre><span class="logo-txt">█▀▀ █   ▄▀█ █▄█ ▄▄ █▀▄▀█ █▄█ █▀█ █▀█ █ █
+█▄▄ █▄▄ █▀█  █     █ ▀ █  █  █▀▄ █▀▄ █▀█</span>
+<span class="dim">tu IA, en casa · v4.0</span>
+
+<span class="u">›</span> /proyecto C:\proyectos\tablon
+<span class="ok">✓</span> Proyecto abierto  tablon <span class="dim">· 17 archivos · red ≈1.100 tokens (leerlo todo: ≈9.500)</span>
+  <span class="w">1 aviso:</span> views/index.ejs: formulario POST /comentarios → no hay ninguna ruta
+  <span class="dim">(¿falta montar src/routes/comments.js con el prefijo /comentarios?)</span>
+
+<span class="u">›</span> arregla el aviso
+<span class="ok">✓</span> Editar  src/server.js <span class="dim">· 1 de 1 cambio aplicado</span>
+<span class="ok">✓</span> Cambios en el proyecto <span class="dim">· /deshacer los revierte · /cambios diff los muestra</span>
+<span class="dim">⏱ 41 s · 412 tok · 10,1 t/s</span></pre>
+    </div>
+  </div>
+
+  <section id="funciones">
+    <div class="wrap">
+      <h2>Todo lo que esperas de un asistente de código, <span class="grad">en tu equipo</span></h2>
+      <p class="lead">Clay-Myrrh carga el modelo en tu GPU (o en la RAM si no cabe), calcula cuánta memoria necesita
+        antes de cargarlo y te dice qué hacer cuando algo falla.</p>
+      <div class="grid">
+        <div class="card"><div class="ico">🔒</div><h3>100 % local</h3>
+          <p>Funciona sin conexión. Tus archivos, fotos y conversaciones no salen de tu equipo.</p></div>
+        <div class="card"><div class="ico">🗂️</div><h3>Modo proyecto</h3>
+          <p>El modelo lee, busca, crea y edita archivos de una carpeta con ediciones pequeñas. Cada cambio guarda
+            una copia y se revierte con <code>/deshacer</code>.</p></div>
+        <div class="card"><div class="ico">🕸️</div><h3>Red del proyecto</h3>
+          <p><code>/grafo</code> mapea tu código sin usar el modelo: qué usa cada archivo, sus rutas, vistas y tablas.
+            Además avisa de las piezas que no encajan.</p></div>
+        <div class="card"><div class="ico">👁️</div><h3>Imágenes y PDFs</h3>
+          <p>Lee fotos, capturas y PDFs, también escaneados. Un modelo de visión hace de «lector» para cualquier
+            modelo de texto.</p></div>
+        <div class="card"><div class="ico">🔁</div><h3>Relevo automático</h3>
+          <p>Las respuestas largas continúan solas sin releer lo ya escrito, y las partes se unen al final.</p></div>
+        <div class="card"><div class="ico">⛓️</div><h3>Cadenas de prompts</h3>
+          <p>Encadena pasos con <code>/cadena</code> y déjalo trabajando. Al terminar tienes un informe de
+            cada paso.</p></div>
+        <div class="card"><div class="ico">🧩</div><h3>57 componentes web</h3>
+          <p>Páginas completas con muy pocos tokens: el modelo escribe etiquetas y el programa genera HTML, CSS y
+            JavaScript ya probados.</p></div>
+        <div class="card"><div class="ico">🧭</div><h3>Asistente de instalación</h3>
+          <p>Detecta tu GPU (NVIDIA, AMD o Intel), recomienda modelos para tu equipo y compara lo local con Claude,
+            Gemini y Codex.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt" id="red">
+    <div class="wrap demo">
+      <div>
+        <h2>Menos tokens, <span class="grad">menos errores</span></h2>
+        <p class="lead">En vez de leerlo todo, el modelo recibe una red del proyecto: una línea por archivo con sus
+          conexiones. Se guarda en <code>Clay-Myrrh.md</code>, junto a tus instrucciones, como un CLAUDE.md o un
+          GEMINI.md, y se actualiza sola.</p>
+        <div class="stats">
+          <div class="card stat"><b class="grad">×9</b><span>menos tokens en una app web de 17 archivos</span></div>
+          <div class="card stat"><b class="grad">×100+</b><span>menos en el propio código de Clay-Myrrh</span></div>
+          <div class="card stat"><b class="grad">&lt;1 s</b><span>para generarla, sin modelo</span></div>
+        </div>
+      </div>
+<pre class="cmd">## Red del proyecto
+Stack: Node.js (express, ejs) · PostgreSQL
+Comandos: npm start · docker compose up
+- src/server.js [js 98]
+  → src/db.js, src/routes/auth.js, …
+  monta: /comentarios=routes/comments.js
+  vistas: index · env: PORT, SESSION_SECRET
+- db/init.sql [sql 25]
+  tablas: users(…), comments(…), session(…)
+- views/login.ejs [ejs 49]
+  incluye: partials/nav.ejs
+  formularios: POST /login
+### Avisos
+- auth.js: res.render('login') no pasa
+  csrfToken → error 500 al abrirla</pre>
+    </div>
+  </section>
+
+  <section id="instalar">
+    <div class="wrap">
+      <h2>Instalar en Windows</h2>
+      <p class="lead">Necesitas Python 3.10 o superior. El asistente se abre en tu navegador, detecta tu hardware y te
+        recomienda modelos, pero no descarga nada sin preguntarte.</p>
+      <ol class="steps">
+        <li><div><h3>Descarga el código</h3>
+          <p>Clona el repositorio o <a href="https://github.com/LuisLeon1705/Local_AI/archive/refs/heads/main.zip">descarga el ZIP</a>.</p>
+<pre class="cmd">git clone https://github.com/LuisLeon1705/Local_AI.git</pre></div></li>
+        <li><div><h3>Ejecuta el instalador</h3>
+          <p><code>instalar-clay-myrrh.bat</code> comprueba Python y las librerías, crea los accesos directos y abre
+            el asistente con la guía y la comparativa.</p></div></li>
+        <li><div><h3>Instala el motor</h3>
+          <p>El asistente te da el comando exacto según tu GPU. Con AMD o Intel, llama-cpp-python se compila con Vulkan;
+            si no quieres compilar nada, usa Ollama.</p></div></li>
+        <li><div><h3>A trabajar</h3>
+          <p>Abre el acceso directo <strong>Clay-Myrrh</strong> o, desde una terminal:</p>
+<pre class="cmd">clay-myrrh                              # chat
+clay-myrrh -d C:\proyectos\mi-web       # trabajar sobre una carpeta
+clay-myrrh --grafo C:\proyectos\mi-web  # red del proyecto en Clay-Myrrh.md</pre></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="alt" id="comandos">
+    <div class="wrap">
+      <h2>Comandos principales</h2>
+      <p class="lead">Escribe <code>/</code> en el chat para ver el menú completo, con descripciones y autocompletado.</p>
+      <div class="scroll">
+        <table class="table">
+          <tr><th>Comando</th><th>Qué hace</th></tr>
+          <tr><td><code>/model</code></td><td>elegir modelo, con su tamaño, si tiene visión y la memoria que necesita</td></tr>
+          <tr><td><code>/proyecto &lt;carpeta&gt;</code></td><td>trabajar sobre una carpeta: el modelo edita sus archivos</td></tr>
+          <tr><td><code>/grafo [ver|avisos]</code></td><td>red del proyecto y comprobaciones automáticas</td></tr>
+          <tr><td><code>/cambios</code> · <code>/deshacer</code></td><td>ver y revertir lo que tocó el modelo</td></tr>
+          <tr><td><code>/cadena &lt;archivo&gt;</code></td><td>ejecutar varios prompts seguidos, con informe</td></tr>
+          <tr><td><code>/zero</code></td><td>crear una web desde cero con un cuestionario y tareas guiadas</td></tr>
+          <tr><td><code>/compact</code></td><td>resumir la conversación para liberar contexto</td></tr>
+          <tr><td><code>/mem</code> · <code>/doctor</code></td><td>estimar VRAM y RAM antes de cargar y diagnosticar la instalación</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="local">
+    <div class="wrap">
+      <h2>¿Para qué sirve una IA local?</h2>
+      <p class="lead">Funciona en cualquier lugar, aunque no en cualquier equipo. Sirve para lo que no quieres
+        enviar a la nube, para cuando no tienes conexión y para trabajar sin límites de uso.</p>
+      <div class="grid">
+        <div class="card"><h3>Privacidad</h3><p>Documentos, contratos, código de trabajo o fotos personales se quedan en tu disco.</p></div>
+        <div class="card"><h3>Sin conexión</h3><p>En un avión, en el campo o con mala señal: el modelo vive en tu equipo.</p></div>
+        <div class="card"><h3>Sin cuotas</h3><p>No hay mensajes contados ni cambios de plan: siempre el mismo modelo, todo el tiempo que quieras.</p></div>
+        <div class="card"><h3>Con límites honestos</h3><p>Un modelo local es más pequeño que los de la nube. El asistente te dice qué esperar de tu hardware.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Clay-Myrrh · tu IA, en casa · hecho con llama.cpp</span>
+    <span>
+      <a href="https://github.com/LuisLeon1705/Local_AI">GitHub</a> ·
+      <a href="demo/">Demo de componentes</a> ·
+      <button class="theme-btn" id="theme" type="button">Cambiar tema</button>
+    </span>
+  </div>
+</footer>
+<script>
+(function () {
+  var root = document.documentElement, KEY = "clay-myrrh-tema";
+  try { var t = localStorage.getItem(KEY); if (t) root.setAttribute("data-theme", t); } catch (e) {}
+  document.getElementById("theme").addEventListener("click", function () {
+    var dark = root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches;
+    var next = dark ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem(KEY, next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>

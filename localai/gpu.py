@@ -1,5 +1,5 @@
 """
-Detección de GPU única para todo el programa (asistente de instalación y Querencia).
+Detección de GPU única para todo el programa (asistente de instalación y Clay-Myrrh).
 
 Orden para identificar la tarjeta y su VRAM total (se resuelve una vez por sesión):
   1. NVML (pynvml)        NVIDIA: nombre, total y libre exactos en cada consulta

@@ -20,8 +20,11 @@ CRASH_LOG = APP_DIR / "crash.log"
 SESSIONS_DIR = APP_DIR / "sessions"
 AUTOSAVE_DIR = SESSIONS_DIR / "auto"
 FILES_DIR = APP_DIR / "archivos"            # archivos que crea el modelo (uno por sesión)
-MEMORY_FILENAME = "LOCAL_AI.md"
-GLOBAL_MEMORY_FILE = APP_DIR / MEMORY_FILENAME
+MEMORY_FILENAME = "Clay-Myrrh.md"            # instrucciones del proyecto (como CLAUDE.md / GEMINI.md)
+LEGACY_MEMORY_FILENAMES = ("LOCAL_AI.md",)   # nombre anterior: se sigue leyendo
+GLOBAL_MEMORY_FILE = next((APP_DIR / n for n in LEGACY_MEMORY_FILENAMES
+                           if (APP_DIR / n).exists() and not (APP_DIR / MEMORY_FILENAME).exists()),
+                          APP_DIR / MEMORY_FILENAME)
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
 if not OLLAMA_HOST.startswith("http"):
     OLLAMA_HOST = "http://" + OLLAMA_HOST
@@ -78,6 +81,9 @@ class Settings:
     # modo proyecto (/proyecto): carpetas recientes y rondas de herramientas (leer/buscar) por mensaje
     recent_projects: list[str] = field(default_factory=list)
     project_rounds: int = 4
+    # qué contexto recibe el modelo en un proyecto: «grafo» (la red del proyecto + solo los archivos que ya
+    # conoce y cambiaron) o «archivos» (todos los archivos pequeños nuevos o cambiados)
+    project_context: str = "grafo"
     settings_version: int = 4
     # perfiles de uso creados por el asistente: {"programacion": {"model": "x.gguf", "max_tokens": …}}
     profiles: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -139,12 +145,13 @@ def save_settings(s: Settings):
 # ---------------------------------------------------------------------------
 
 def project_memory_file(cwd: Path | None = None) -> Path:
-    """LOCAL_AI.md más cercano subiendo desde cwd; si no hay, el del cwd."""
+    """Clay-Myrrh.md (o el antiguo LOCAL_AI.md) más cercano subiendo desde cwd; si no hay, el del cwd."""
     cwd = (cwd or Path.cwd()).resolve()
     for d in [cwd, *cwd.parents]:
-        f = d / MEMORY_FILENAME
-        if f.exists():
-            return f
+        for name in (MEMORY_FILENAME, *LEGACY_MEMORY_FILENAMES):
+            f = d / name
+            if f.exists():
+                return f
     return cwd / MEMORY_FILENAME
 
 

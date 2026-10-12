@@ -25,9 +25,16 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .config import APP_DIR
+from . import grafo
+from .config import APP_DIR, LEGACY_MEMORY_FILENAMES, MEMORY_FILENAME
 
 BACKUP_DIR = APP_DIR / "respaldos"
+MEMORY_NAMES = {MEMORY_FILENAME, *LEGACY_MEMORY_FILENAMES}   # van en el prompt de sistema, no se adjuntan
+GRAPH_NOTE = ("La RED DEL PROYECTO de abajo la genera el programa leyendo el código: cada archivo con lo que usa, "
+              "sus rutas, vistas, tablas y variables. Úsala para decidir qué leer y pide con <leer/> solo los archivos "
+              "que vayas a cambiar o necesites ver por dentro. Los «Avisos» son piezas que no encajan, detectadas "
+              "automáticamente: tenlos en cuenta. Cuando cambien archivos recibirás solo las líneas de la red que cambien.")
+SMALL_PROJECT = 6000                   # caracteres: en proyectos así de pequeños se adjunta todo igualmente
 IGNORE_DIRS = {".git", ".hg", ".svn", "node_modules", "__pycache__", ".venv", "venv", "env", "dist", "build", ".next",
                ".nuxt", ".cache", ".idea", ".vscode", "target", ".pytest_cache", ".mypy_cache", ".ruff_cache",
                "coverage", ".gradle", "bin", "obj", ".zero", ".local_ai"}
@@ -41,7 +48,6 @@ INSTRUCTIONS = """# Proyecto abierto: {name}
 Trabajas DIRECTAMENTE sobre los archivos de la carpeta {root}. Lo que escribas se aplica al disco al terminar tu \
 respuesta (con copia de seguridad: el usuario puede deshacerlo con /deshacer).
 
-Estructura actual (sin carpetas de dependencias ni compilados):
 {tree}
 
 No puedes ejecutar comandos. Tus herramientas son estas etiquetas; el programa te responde en el mensaje siguiente:
@@ -59,7 +65,8 @@ líneas nuevas
 >>>>>>> REEMPLAZAR
 </editar>
 Puedes poner varios pares BUSCAR/REEMPLAZAR en un <editar>. Con BUSCAR vacío, el texto se añade al final.
-Para CREAR un archivo (o reescribir uno pequeño entero) usa un bloque de código con la ruta: ```js src/nuevo.js
+Para CREAR un archivo (o reescribir uno pequeño entero) usa un bloque de código con la ruta: ```js src/nuevo.js \
+(o <crear ruta="src/nuevo.js">contenido</crear>)
 Escribe siempre el archivo COMPLETO en esos bloques: nunca «...», «resto igual» ni fragmentos.
 Para borrar un archivo: <borrar ruta="x"/>. Rutas siempre relativas a la carpeta del proyecto."""
 
@@ -123,8 +130,15 @@ def _pairs(body: str) -> list[tuple[str, str]]:
     return pairs
 
 
+_CREATE = re.compile(rf"<(crear|escribir|archivo|nuevo|create|write|file)\s+{_ATTR}\s*>\n?(.*?)</\1\s*>", re.S | re.I)
+
+
 def parse_actions(text: str) -> Actions:
     a = Actions()
+    # <crear ruta="x">contenido</crear>: los modelos lo inventan por simetría con <leer>, <editar> y <borrar>
+    for m in _CREATE.finditer(text):
+        a.writes.append((m.group(2).strip(), _unfence(m.group(3)).rstrip("\n") + "\n"))
+    text = _CREATE.sub("", text)
     rest = text
     for m in re.finditer(rf"<editar\s+{_ATTR}\s*>(.*?)(?:</editar>|$)", text, re.S | re.I):
         pairs = _pairs(m.group(2))
@@ -272,6 +286,10 @@ class Workspace:
         self.sent: dict[str, int] = {}          # versión (mtime) de cada archivo que ya vio el modelo
         self._ignore = self._load_gitignore()
         self.tree_cache = ""
+        self.context_mode = "grafo"             # grafo | archivos (Settings.project_context)
+        self._red, self._red_sig = None, ()
+        self.graph_sent: dict[str, str] = {}
+        self.avisos_sent: list[str] = []
 
     # -- rutas --
     def rel(self, p: Path) -> str:
@@ -351,13 +369,65 @@ class Workspace:
         return "\n".join(lines)
 
     def instructions(self) -> str:
+        """Bloque del prompt de sistema. Se fija al abrir el proyecto (o con /proyecto recargar) para que el
+        prefijo del prompt no cambie y el motor reutilice su caché; los cambios llegan con graph_delta()."""
         if not self.tree_cache:
-            self.tree_cache = self.tree()
+            if self.context_mode == "grafo":
+                red = self.red()
+                self.graph_sent, self.avisos_sent = red.node_lines(), list(red.avisos)
+                self.tree_cache = (GRAPH_NOTE + "\n" + grafo.strip_marks(red.text()))
+            else:
+                self.tree_cache = "Estructura actual (sin carpetas de dependencias ni compilados):\n" + self.tree()
         return INSTRUCTIONS.format(name=self.name, root=self.root, tree=self.tree_cache)
 
     def refresh(self):
         self.tree_cache = ""
+        self._red = None
         self._ignore = self._load_gitignore()
+
+    # -- red del proyecto (localai/grafo.py) --
+    def red(self) -> "grafo.Red":
+        """La red actual; se reconstruye solo si cambió algún archivo (tamaño o fecha)."""
+        files = self.walk()
+        sig = []
+        for r, n in files:
+            try:
+                sig.append((r, n, (self.root / r).stat().st_mtime_ns))
+            except OSError:
+                continue
+        sig = tuple(sig)
+        if self._red is None or sig != self._red_sig:
+            self._red, self._red_sig = grafo.build(self.root, files), sig
+        return self._red
+
+    def graph_delta(self) -> str:
+        """Cambios de la red desde la última vez que la vio el modelo (vacío si no hay)."""
+        if self.context_mode != "grafo" or not self.tree_cache:
+            return ""
+        red = self.red()
+        d = grafo.delta(self.graph_sent, self.avisos_sent, red)
+        self.graph_sent, self.avisos_sent = red.node_lines(), list(red.avisos)
+        return d
+
+    def snapshot(self) -> tuple:
+        """Lo que el modelo «ya ha visto», para restaurarlo si el mensaje no llega a enviarse."""
+        return dict(self.sent), dict(self.graph_sent), list(self.avisos_sent)
+
+    def restore(self, snap: tuple):
+        self.sent, self.graph_sent, self.avisos_sent = dict(snap[0]), dict(snap[1]), list(snap[2])
+
+    def mentioned(self, text: str) -> set[str]:
+        """Archivos del proyecto que el usuario nombra en su mensaje (ruta o nombre único)."""
+        low = text.lower()
+        files = [r for r, _ in self.walk()]
+        names: dict[str, list[str]] = {}
+        for r in files:
+            names.setdefault(r.rsplit("/", 1)[-1].lower(), []).append(r)
+        out = {r for r in files if r.lower() in low}
+        for name, rels in names.items():
+            if len(rels) == 1 and "." in name and re.search(rf"(?<![\w/.-]){re.escape(name)}(?![\w-])", low):
+                out.add(rels[0])
+        return out
 
     # -- herramientas de lectura --
     def read(self, rel: str, start: int | None = None, end: int | None = None) -> str:
@@ -390,12 +460,16 @@ class Workspace:
         rng = f" (líneas {a}–{b} de {n})" if (a > 1 or b < n) else f" ({n} líneas)"
         return f"### {self.rel(p)}{rng}\n```{lang}\n{chunk}\n```{note}"
 
-    def fresh_context(self, max_chars: int, per_file: int = 12000) -> tuple[str, list[str], list[str]]:
+    def fresh_context(self, max_chars: int, per_file: int = 12000,
+                      mentioned: set[str] | None = None) -> tuple[str, list[str], list[str]]:
         """
         Contenido de los archivos de texto nuevos o cambiados desde la última vez que los vio el
-        modelo, de menor a mayor hasta max_chars. Así, en proyectos pequeños no hace falta pedir
-        lecturas. Se omiten los generados desde un .lai (se edita el .lai). Devuelve
-        (texto, incluidos, omitidos).
+        modelo, de menor a mayor hasta max_chars. Se omiten los generados desde un .lai (se edita
+        el .lai) y Clay-Myrrh.md (ya va en el prompt). Devuelve (texto, incluidos, omitidos).
+
+        En modo «grafo» el modelo tiene la red del proyecto, así que solo se adjuntan los archivos
+        que ya conocía y han cambiado, los que nombra el usuario y, si el proyecto es muy pequeño,
+        todos (sale más barato que una ronda de lecturas).
         """
         files = self.walk()
         lai_dirs = {str(Path(r).parent) for r, _ in files if r.endswith(".lai")}
@@ -403,7 +477,8 @@ class Workspace:
                      for x in ("index.html", "css/styles.css", "js/app.js")}
         cands, skipped = [], []
         for r, n in files:
-            if Path(r).suffix.lower() in BINARY_EXT or r in generated or Path(r).name == ".gitignore":
+            if (Path(r).suffix.lower() in BINARY_EXT or r in generated or Path(r).name == ".gitignore"
+                    or Path(r).name in MEMORY_NAMES):
                 continue
             try:
                 mt = (self.root / r).stat().st_mtime_ns
@@ -412,6 +487,11 @@ class Workspace:
             if self.sent.get(r) == mt:
                 continue
             (cands if n <= per_file else skipped).append((r, n, mt))
+        on_demand = []                     # modo grafo: la red ya dice qué hay; se leen si hacen falta
+        if self.context_mode == "grafo" and sum(n for _, n, _ in cands) > SMALL_PROJECT:
+            wanted = mentioned or set()
+            on_demand = [c for c in cands if c[0] not in self.sent and c[0] not in wanted]
+            cands = [c for c in cands if c[0] in self.sent or c[0] in wanted]
         out, used, names = [], 0, []
         for r, n, mt in sorted(cands, key=lambda x: x[1]):
             if used + n > max_chars:
@@ -427,12 +507,12 @@ class Workspace:
             names.append(r)
             out.append(f"### {r}\n```{Path(r).suffix.lstrip('.') or 'text'}\n{text.rstrip()}\n```")
         if not out:
-            return "", [], [r for r, _, _ in skipped]
+            return "", [], [r for r, _, _ in skipped + on_demand]
         head = ("[Contenido ACTUAL de los archivos del proyecto" + (" que cambiaron desde la última vez" if len(self.sent) > len(names) else "")
                 + " · adjuntado por el programa]")
         tail = (f"\n\n(No incluidos por tamaño, pídelos con <leer/>: {', '.join(r for r, _, _ in skipped[:12])})"
                 if skipped else "")
-        return head + "\n\n" + "\n\n".join(out) + tail, names, [r for r, _, _ in skipped]
+        return head + "\n\n" + "\n\n".join(out) + tail, names, [r for r, _, _ in skipped + on_demand]
 
     def locate(self, search: str) -> list[str]:
         """Archivos que contienen el texto (ignorando sangría y líneas vacías)."""

@@ -1,4 +1,4 @@
-<page title="Demo de componentes · Querencia" brand="Café Aurora" theme="minimal" accent="#b45309" font="Outfit" currency="€" description="Escaparate de los componentes prediseñados de Querencia"/>
+<page title="Demo de componentes · Clay-Myrrh" brand="Café Aurora" theme="minimal" accent="#b45309" font="Outfit" currency="€" description="Escaparate de los componentes prediseñados de Clay-Myrrh"/>
 <banner text="☕ Esta es una página de demostración: todo lo que ves sale de etiquetas .lai" link="Ver la carta|#carta"/>
 <navbar brand="Café Aurora" logo="☕" cta="Reservar|#reservas"/>
 <hero title="Café de especialidad, tostado aquí" eyebrow="Demo de componentes" subtitle="Cada bloque de esta página es un componente prediseñado: la IA solo escribe el contenido." button="Ver la carta|#carta" button2="Reservar|#reservas" image="☕" align="left"/>
@@ -110,7 +110,7 @@
 <map id="ubicacion" nav="Dónde" title="Dónde estamos" lat="40.4168" lon="-3.7038" zoom="16" address="Puerta del Sol, Madrid">A 2 minutos del metro **Sol**.</map>
 <newsletter title="Novedades cada mes" text="Nuevos orígenes y eventos, sin spam."/>
 <contact id="contacto" title="Escríbenos" email="hola@cafeaurora.es" phone="+34 600 123 456" fields="nombre, email, mensaje"/>
-<footer brand="Café Aurora" text="Demo de componentes de Querencia" email="hola@cafeaurora.es"/>
+<footer brand="Café Aurora" text="Demo de componentes de Clay-Myrrh" email="hola@cafeaurora.es"/>
 <float whatsapp="34600123456" message="Hola, quería reservar" theme="yes" top="yes"/>
 <chatbot name="Aurora" greeting="¡Hola! Soy el asistente de la cafetería. ¿Qué quieres saber?" fallback="No tengo esa respuesta; escríbenos en el formulario de contacto.">
   <item q="horario, abierto, abris, cierra, hora" label="Horario">De lunes a viernes de 7:30 a 20:00 y los sábados de 9:00 a 21:00.</item>

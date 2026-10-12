@@ -22,12 +22,12 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from . import __version__, llamalog, reader, relay, render, sessions
+from . import __version__, grafo, llamalog, reader, relay, render, sessions
 from .attachments import AttachError, Attachment, find_mentions, load_any, shrink_image
 from .catalog import Catalog, ModelEntry, build_catalog, entry_from_path, pair_mmproj
 from .config import (TRANSIENT, CRASH_LOG, FILES_DIR, AUTOSAVE_DIR, GLOBAL_MEMORY_FILE, HISTORY_FILE, OLLAMA_HOST, Settings,
-                     load_memory_text, load_settings, memory_files, parse_size, project_memory_file,
-                     save_settings, DEFAULT_SYSTEM_PROMPT)
+                     LEGACY_MEMORY_FILENAMES, MEMORY_FILENAME, load_memory_text, load_settings, memory_files, parse_size,
+                     project_memory_file, save_settings, DEFAULT_SYSTEM_PROMPT)
 from . import files as filemod
 from . import workspace as wsmod
 from .engine import EngineError, GenParams, GenStats, LlamaEngine, OllamaEngine, image_tokens
@@ -137,6 +137,7 @@ class App:
         self.turn_query = ""                               # petición del turno (elige qué componentes documentar)
         self.last_transcripts: list[tuple[str, str]] = []     # (origen, texto)
         self.last_relay = ""
+        self.last_stopped = False
         self.assume_yes = False
         self.stats = SessionStats()
         self.session_id = time.strftime("%Y%m%d-%H%M%S")
@@ -180,8 +181,10 @@ class App:
 
     def system_text(self) -> str:
         parts = [self.s.system_prompt]
-        if self.memory_text:
-            parts.append("# Instrucciones persistentes del usuario (LOCAL_AI.md)\n" + self.memory_text)
+        # en modo proyecto la red va en el bloque del proyecto (siempre actual): aquí, solo las instrucciones
+        memory = grafo.strip_section(self.memory_text) if self.workspace is not None else self.memory_text
+        if memory:
+            parts.append("# Instrucciones persistentes del usuario (Clay-Myrrh.md)\n" + memory)
         if self.workspace is not None:
             parts.append(self.workspace.instructions())
         elif self.s.save_files != "never":
@@ -242,10 +245,10 @@ class App:
             CmdSpec("/chat", "Sesiones con nombre: save|list|load|delete", "<acción> [nombre]",
                     choices=lambda: [("save", "guardar la sesión actual"), ("list", "listar sesiones"),
                                      ("load", "cargar"), ("delete", "borrar")] + [(f"load {n}", m) for n, m in sess()]),
-            CmdSpec("/memory", "Instrucciones persistentes (LOCAL_AI.md)", "[show|add|addp|edit|reload|path]",
+            CmdSpec("/memory", "Instrucciones persistentes (Clay-Myrrh.md)", "[show|add|addp|edit|reload|path]",
                     choices=lambda: [("show", "ver memoria cargada"), ("add ", "añadir a la memoria global"),
                                      ("addp ", "añadir a la memoria del proyecto"), ("edit", "abrir en el editor"),
-                                     ("edit proyecto", "editar LOCAL_AI.md del proyecto"),
+                                     ("edit proyecto", "editar Clay-Myrrh.md del proyecto"),
                                      ("reload", "recargar archivos"), ("path", "rutas")]),
             CmdSpec("/stats", "Tokens de entrada/salida, t/s, tiempos y memoria"),
             CmdSpec("/copy", "Copiar la última respuesta al portapapeles"),
@@ -316,6 +319,11 @@ class App:
             CmdSpec("/cambios", "Cambios del modelo en el proyecto durante esta sesión", "[diff]",
                     choices=lambda: [("diff", "ver las diferencias del último cambio")]),
             CmdSpec("/deshacer", "Revertir los últimos cambios del modelo en el proyecto", aliases=("/undo",)),
+            CmdSpec("/cadena", "Encadenar prompts: varios separados por una línea --- (o un archivo) se ejecutan seguidos",
+                    "<archivo [desde N] | prompts separados por --->", paths=True, aliases=("/chain",)),
+            CmdSpec("/grafo", "Red del proyecto en Clay-Myrrh.md: archivos, conexiones y avisos (menos tokens que leerlo)",
+                    "[ver|avisos]", choices=lambda: [("ver", "mostrar la red"), ("avisos", "piezas que no encajan")],
+                    aliases=("/red", "/graph")),
             CmdSpec("/zero", "Prompt-Zero: crear una página web desde cero con un cuestionario y tareas guiadas",
                     "[continuar]", choices=lambda: [("continuar", "retomar el último proyecto a medias")],
                     aliases=("/prompt-zero",)),
@@ -337,9 +345,8 @@ class App:
         return cands[0] if len(cands) == 1 else None
 
     def handle_command(self, line: str):
-        cmd, _, arg = line.strip().partition(" ")
-        cmd = cmd.lower()
-        arg = arg.strip()
+        m = re.match(r"(\S+)\s*(.*)", line.strip(), re.S)
+        cmd, arg = (m.group(1).lower(), m.group(2).strip()) if m else ("", "")
         real = self._resolve(cmd)
         if real is None:
             cands = [c for c in self.commands if c.startswith(cmd) and not self.commands[c].hidden]
@@ -351,7 +358,8 @@ class App:
         alias = {"/?": "/help", "/h": "/help", "/reset": "/clear", "/quit": "/exit", "/q": "/exit",
                  "/estimate": "/mem", "/img": "/image", "/adjuntos": "/attachments", "/ajustes": "/settings",
                  "/prompt-zero": "/zero", "/template": "/plantilla", "/project": "/proyecto",
-                 "/carpeta": "/proyecto", "/undo": "/deshacer"}
+                 "/carpeta": "/proyecto", "/undo": "/deshacer", "/chain": "/cadena", "/red": "/grafo",
+                 "/graph": "/grafo"}
         real = alias.get(real, real)
         fn: Callable[[str], None] = getattr(self, "cmd_" + real[1:].replace("-", "_"))
         try:
@@ -1013,14 +1021,21 @@ class App:
             return
         content = "\n\n".join(texts + [text])
         msg: dict = {"role": "user", "content": content}
-        ws_sent = dict(self.workspace.sent) if self.workspace is not None else None
+        ws_sent = self.workspace.snapshot() if self.workspace is not None else None
         if self.workspace is not None:
+            ws = self.workspace
             room = (self.n_ctx - self.context_used() - self.params.max_tokens) * 3
-            ctx_txt, names, skipped = self.workspace.fresh_context(int(min(40000, max(2000, room * 0.35))))
+            ctx_txt, names, skipped = ws.fresh_context(int(min(40000, max(2000, room * 0.35))),
+                                                       mentioned=ws.mentioned(text))
+            delta = ws.graph_delta()
+            if delta:
+                render.tool("info", "Red del proyecto", f"{delta.count(chr(10))} línea(s) actualizadas",
+                            f"{len(ws.red().avisos)} aviso(s)" if ws.red().avisos else "sin avisos")
+            if ctx_txt or delta:
+                msg["content"] = "\n\n".join(x for x in (delta, ctx_txt) if x) + "\n\n[Petición del usuario]\n" + content
             if ctx_txt:
-                msg["content"] = ctx_txt + "\n\n[Petición del usuario]\n" + content
                 render.tool("ok", "Contexto del proyecto", f"{len(names)} archivo(s) adjuntados",
-                            ", ".join(names)[:160] + (f" · {len(skipped)} grandes se leen bajo demanda" if skipped else ""))
+                            ", ".join(names)[:160] + (f" · {len(skipped)} se leen bajo demanda" if skipped else ""))
         if images:
             msg["images"] = images
             limit = self.n_ctx - self._budget_reserve()
@@ -1032,7 +1047,7 @@ class App:
                         texts + ["[Contenido extraído de las imágenes adjuntas]\n" + notes, text])}
         if not self._fit_history(msg):
             if ws_sent is not None:
-                self.workspace.sent = ws_sent
+                self.workspace.restore(ws_sent)
             need = self.engine.prompt_tokens(self.messages([msg]), self.params.thinking)
             error(f"El mensaje con sus adjuntos ocupa ~{need} tokens y el contexto es de {self.n_ctx} "
                   f"(reservando {self._budget_reserve()} para la respuesta).",
@@ -1053,11 +1068,12 @@ class App:
         label = f"{self.engine.name}" + (" · 👁" if images and "images" in msg else "")
         try:
             answer, think, stopped = self.relay_chain(self.messages(), content, label)
+            self.last_stopped = stopped
         except EngineError as e:
             self.history.pop()
             self.turn_components = False
             if ws_sent is not None:
-                self.workspace.sent = ws_sent
+                self.workspace.restore(ws_sent)
             error(str(e), e.hints)
             return
         finally:
@@ -1066,7 +1082,7 @@ class App:
         if not answer:
             self.history.pop()
             if ws_sent is not None:
-                self.workspace.sent = ws_sent
+                self.workspace.restore(ws_sent)
             if think:
                 self.last_think = think
                 warn("El modelo solo razonó y se quedó sin tokens antes de responder: sube /tokens o usa /think off.")
@@ -1103,6 +1119,7 @@ class App:
             n_before = len(ws.current.changes) if ws.current else 0
             errors = self._offer_files(answer, goal) or []
             acts = wsmod.parse_actions(answer)
+            self._skip_rewritten_deletes(acts, answer)
             results, errs, applied = self._apply_actions(acts)
             errors += errs
             changed = (len(ws.current.changes) if ws.current else 0) > n_before
@@ -1135,6 +1152,7 @@ class App:
             self._mark_ctx()
             try:
                 answer, think, stopped = self.relay_chain(self.messages(), goal, label)
+                self.last_stopped = self.last_stopped or stopped
             except EngineError as e:
                 self.history.pop()
                 error(str(e), e.hints)
@@ -1151,7 +1169,83 @@ class App:
             self.last_saved = [ws.root / c.rel for c in cs.changes.values() if c.kind != "borrado"]
             render.tool("ok", "Cambios en el proyecto", f"{len(cs.changes)} archivo(s) en {ws.name}",
                         wsmod.summary(cs) + " · /deshacer los revierte · /cambios diff los muestra")
+            self._refresh_graph_file()
         self.autosave()
+
+    def _refresh_graph_file(self):
+        """Si el proyecto tiene la red en Clay-Myrrh.md (creada con /grafo), la mantiene al día."""
+        f = self.workspace.root / MEMORY_FILENAME
+        try:
+            if f.exists() and grafo.has_section(f.read_text(encoding="utf-8")):
+                grafo.update_file(f, self.workspace.red())
+        except OSError:
+            pass
+
+    # ---------------------------------------------------------------- red del proyecto
+    def cmd_grafo(self, arg: str):
+        sub = arg.strip().lower()
+        root = self.workspace.root if self.workspace is not None else Path.cwd()
+        ws = self.workspace or wsmod.Workspace(root, self.session_id)
+        red = ws.red()
+        if sub in ("ver", "show"):
+            console.print(render.md(grafo.strip_marks(red.text())))
+            return
+        if sub in ("avisos", "warnings"):
+            if not red.avisos:
+                ok("Sin avisos: las piezas del proyecto encajan (rutas, vistas, tablas, variables, Docker…).")
+            for a in red.avisos:
+                say(f"  [warning]•[/] {escape(a)}")
+            return
+        if sub:
+            raise ValueError("Uso: /grafo [ver|avisos] · sin argumentos crea o actualiza la red en Clay-Myrrh.md")
+        f = root / MEMORY_FILENAME
+        legacy = next((root / n for n in LEGACY_MEMORY_FILENAMES if (root / n).exists()), None)
+        existed = f.exists()
+        grafo.update_file(f, red)
+        self.memory_text = load_memory_text()
+        if self.workspace is not None:
+            self.workspace.refresh()
+            self.workspace.instructions()
+        self._mark_ctx()
+        full = int(red.total_chars / 3.5)
+        render.tool("ok", "Red del proyecto", f"{'actualizada' if existed else 'creada'} en {render.short_path(f)}",
+                    f"{len(red.nodes)} archivos · ≈{red.tokens()} tokens (leerlo todo: ≈{full:,})".replace(",", ".")
+                    + (f" · ×{full / max(1, red.tokens()):.0f} menos" if full > red.tokens() else ""))
+        if not existed:
+            say("  [dim]Añade tus instrucciones en la sección «Instrucciones» de Clay-Myrrh.md: el modelo las lee siempre."
+                " La red se actualiza sola cuando cambian los archivos del proyecto.[/]")
+        if legacy is not None:
+            say(f"  [dim]También hay {legacy.name} (nombre anterior): Clay-Myrrh.md tiene prioridad; puedes copiar sus notas "
+                "y borrarlo.[/]")
+        if red.avisos:
+            say(f"  [warning]{len(red.avisos)} aviso(s)[/] [dim](piezas que no encajan):[/]")
+            for a in red.avisos[:8]:
+                say(f"  [warning]•[/] {escape(a)}")
+            if len(red.avisos) > 8:
+                say(f"  [dim]… /grafo avisos los muestra todos[/]")
+        if self.workspace is None:
+            say("  [dim]Abre la carpeta como proyecto (/proyecto .) para que el modelo use la red al trabajar.[/]")
+
+    def _skip_rewritten_deletes(self, acts: "wsmod.Actions", answer: str):
+        """«Borro y reescribo»: si la misma respuesta trae el archivo completo, no se borra después de escribirlo."""
+        ws = self.workspace
+
+        def norm(p: str) -> str | None:
+            try:
+                return ws.rel(ws.resolve(p))
+            except (ValueError, OSError):
+                return None
+
+        written = {norm(b.path) for b in filemod.extract_blocks(answer) if b.path and not _edit_like(b.code)}
+        written |= {norm(rel) for rel, _ in acts.writes}
+        written.discard(None)
+        keep = []
+        for rel in acts.deletes:
+            if norm(rel) in written:
+                render.tool("info", "Borrar", rel, "se omite: la misma respuesta lo reescribe entero")
+            else:
+                keep.append(rel)
+        acts.deletes = keep
 
     def _apply_actions(self, acts: "wsmod.Actions") -> tuple[str, list[str], list[str]]:
         """Ejecuta las etiquetas del modelo. Devuelve (resultados para el modelo, errores, cambios aplicados)."""
@@ -1247,13 +1341,25 @@ class App:
         self.s.recent_projects = rec[:8]
         save_settings(self.s)
         n = len(ws.walk())
+        ws.context_mode = self.s.project_context
         ws.instructions()
-        tree_tok = len(ws.tree_cache) // 3
+        tree_tok = int(len(ws.tree_cache) / 3.5)
+        if ws.context_mode == "grafo":
+            red = ws.red()
+            full = int(red.total_chars / 3.5)
+            what = f"red del proyecto ≈{tree_tok} tokens (leerlo todo: ≈{full})"
+        else:
+            red, what = None, f"estructura ≈{tree_tok} tokens"
         render.tool("ok", "Proyecto abierto", ws.name,
-                    f"{n} archivos · estructura ≈{tree_tok} tokens · el modelo puede leer, crear y editar archivos "
+                    f"{n} archivos · {what} · el modelo puede leer, crear y editar archivos "
                     f"aquí · /deshacer revierte · /proyecto cerrar")
-        if self.memory_text and (ws.root / "LOCAL_AI.md").exists():
-            say("  [dim]+ instrucciones del proyecto (LOCAL_AI.md)[/]")
+        mem = next((ws.root / x for x in (MEMORY_FILENAME, *LEGACY_MEMORY_FILENAMES) if (ws.root / x).exists()), None)
+        if self.memory_text and mem is not None:
+            say(f"  [dim]+ instrucciones del proyecto ({mem.name})[/]")
+        elif red is not None and n:
+            say("  [dim]/grafo guarda la red en Clay-Myrrh.md (con tus instrucciones del proyecto, como un CLAUDE.md)[/]")
+        if red is not None and red.avisos:
+            say(f"  [warning]{len(red.avisos)} aviso(s) en la red[/] [dim](piezas que no encajan: /grafo avisos)[/]")
         self._mark_ctx()
         return True
 
@@ -1321,6 +1427,97 @@ class App:
         self.history.append({"role": "user", "content": "[Mensaje automático: el usuario ha deshecho tus últimos "
                              f"cambios en los archivos ({wsmod.summary(cs)}). Ya no están en el disco.]"})
         self.history.append({"role": "assistant", "content": "Entendido: esos cambios se han revertido."})
+
+    # ---------------------------------------------------------------- cadenas de prompts
+    def cmd_cadena(self, arg: str):
+        a = arg.strip()
+        if not a:
+            say("[dim]Uso:[/] /cadena archivo.txt [desde N] · o escribe varios prompts separados por una línea [accent]---[/] "
+                "(Shift+Enter para saltos de línea). Las líneas iniciales que empiezan por / se ejecutan como comandos "
+                "(p. ej. /tokens 8000). La cadena se detiene si un paso falla o pulsas Esc.")
+            return
+        first, _, rest = a.partition("\n")
+        m = re.match(r"^(.*?)(?:\s+desde\s+(\d+))?$", first.strip())
+        cand = Path(os.path.expandvars(m.group(1).strip().strip('"'))).expanduser() if not rest.strip() else None
+        if cand is not None and cand.is_file():
+            self.run_chain(chain_steps(cand.read_text(encoding="utf-8")), str(cand), int(m.group(2) or 1))
+            return
+        steps = chain_steps(a)
+        if len(steps) < 2 and cand is not None and not rest.strip():
+            raise ValueError(f"No existe el archivo «{m.group(1).strip()}». Para encadenar prompts escritos aquí, "
+                             "sepáralos con una línea ---")
+        self.run_chain(steps, "")
+
+    def run_chain(self, steps: list[str], source: str = "", start: int = 1) -> bool:
+        """Ejecuta los pasos como si se escribieran uno tras otro. Devuelve True si se completaron todos."""
+        n = len(steps)
+        if not n:
+            warn("La cadena está vacía.")
+            return False
+        start = max(1, min(start, n))
+        t0 = time.time()
+        render.tool("info", "⛓ Cadena", f"{n} pasos" + (f" · {Path(source).name}" if source else "")
+                    + (f" · desde el {start}" if start > 1 else ""),
+                    "cada paso se ejecuta al terminar el anterior · se detiene si uno falla o pulsas Esc")
+        report = [f"# Cadena · {time.strftime('%Y-%m-%d %H:%M')}" + (f" · {source}" if source else ""), ""]
+        if self.workspace is not None:
+            report.append(f"Proyecto: {self.workspace.root}\n")
+        changes0 = len(self.workspace.history) if self.workspace is not None else 0
+        done, failed_at = start - 1, None
+        for i in range(start, n + 1):
+            lines = steps[i - 1].splitlines()
+            cmds = []
+            while lines and lines[0].strip().startswith("/") and not lines[0].strip().startswith("//"):
+                cmds.append(lines.pop(0).strip())
+            prompt = "\n".join(lines).strip()
+            render.tool("info", f"⛓ Paso {i}/{n}", (prompt or " ".join(cmds)).splitlines()[0][:90],
+                        f"{(time.time() - t0) / 60:.0f} min desde el inicio")
+            for c in cmds:
+                self._echo_user(c)
+                self.handle_command(c)
+            ok = True
+            if prompt:
+                before = len(self.history)
+                self.last_stopped = False
+                self._echo_user(prompt)
+                ts = time.time()
+                try:
+                    self.send(prompt)
+                except KeyboardInterrupt:
+                    self.last_stopped = True
+                ok = (not self.last_stopped and len(self.history) > before
+                      and self.history[-1].get("role") == "assistant")
+                report += [f"## Paso {i}/{n} · {(time.time() - ts) / 60:.1f} min" + ("" if ok else " · ✖"), "",
+                           "**Prompt**", "", prompt, "", "**Respuesta**", "",
+                           (self.history[-1]["content"] if ok else "(sin respuesta)"), ""]
+            if not ok:
+                failed_at = i
+                why = "interrumpido con Esc" if self.last_stopped else "el modelo no respondió o hubo un error"
+                again = f"/cadena {source} desde {i}" if source else "vuelve a lanzar los pasos que faltan"
+                warn(f"La cadena se detiene en el paso {i} de {n}: {why}. Para seguir: {again}")
+                break
+            done = i
+        mins = (time.time() - t0) / 60
+        extra = ""
+        if self.workspace is not None:
+            sets = self.workspace.history[changes0:]
+            files = {c.rel for cs in sets for c in cs.changes.values()}
+            extra = f" · {len(files)} archivo(s) del proyecto cambiados"
+        from .config import APP_DIR
+        path = APP_DIR / "cadenas" / f"{self.session_id}-{time.strftime('%H%M%S')}.md"
+        k = 2
+        while path.exists():
+            path = path.with_name(f"{self.session_id}-{time.strftime('%H%M%S')}-{k}.md")
+            k += 1
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("\n".join(report), encoding="utf-8")
+        except OSError:
+            path = None
+        render.tool("ok" if failed_at is None else "warn", "⛓ Cadena terminada" if failed_at is None else "⛓ Cadena detenida",
+                    f"{done - start + 1 if done >= start else 0}/{n - start + 1} pasos en {mins:.0f} min{extra}",
+                    (f"informe: {render.short_path(path)}" if path else "") + (" · /cambios para ver qué tocó" if extra else ""))
+        return failed_at is None
 
     def cmd_plantilla(self, arg: str):
         if not arg.strip():
@@ -1421,6 +1618,10 @@ class App:
         errors = []
         for b in blocks:
             if not b.path:
+                continue
+            if _edit_like(b.code):   # ediciones dentro de una valla: las aplica parse_actions
+                render.tool("info", "Bloque", b.path, "lleva BUSCAR/REEMPLAZAR o <editar>: se aplica como edición, "
+                            "no se escribe como archivo")
                 continue
             try:
                 t = ws.resolve(b.path)
@@ -1530,13 +1731,14 @@ class App:
         ]
         render.banner(__version__, status, tips)
 
-    def repl(self):
+    def repl(self, banner: bool = True):
         from .inputbox import InputBox
         no_arg = {c for c, sp in self.commands.items() if not sp.args}
         self.box = InputBox(self.commands, HISTORY_FILE, self.toolbar, render.current,
                             on_copy=lambda: bool(self.last_reply) and copy_to_clipboard(self.last_reply),
                             no_arg_cmds=no_arg)
-        self.print_banner()
+        if banner:
+            self.print_banner()
         input_errors = 0
         while self.running:
             try:
@@ -1648,7 +1850,7 @@ class App:
 
     HELP_GROUPS = [
         ("Conversación", ["/clear", "/compact", "/copy", "/export", "/system", "/think", "/memory"]),
-        ("Proyecto", ["/proyecto", "/cambios", "/deshacer"]),
+        ("Proyecto", ["/proyecto", "/grafo", "/cambios", "/deshacer", "/cadena"]),
         ("Crear", ["/plantilla", "/zero", "/componentes"]),
         ("Modelos y memoria", ["/model", "/modo", "/models", "/setup", "/mem", "/ctx", "/gpu", "/kv", "/swa", "/auto",
                                "/doctor"]),
@@ -1941,8 +2143,16 @@ class App:
             raise ValueError("shell: powershell | cmd")
         if k == "save_files" and val not in ("auto", "ask", "never"):
             raise ValueError("save_files: auto | ask | never")
+        if k == "project_context" and val not in ("grafo", "archivos"):
+            raise ValueError("project_context: grafo (red del proyecto, menos tokens) | archivos (adjunta todos los "
+                             "archivos pequeños nuevos o cambiados)")
         setattr(self.s, k, val)
         save_settings(self.s)
+        if k == "project_context" and self.workspace is not None:
+            self.workspace.context_mode = val
+            self.workspace.refresh()
+            self.workspace.instructions()
+            self._mark_ctx()
         ok(f"{k} = {val}")
 
     # ---------------------------------------------------------------- think
@@ -2280,7 +2490,7 @@ class App:
         if not arg:
             console.print(Panel(self.s.system_prompt, title="Prompt de sistema", border_style="border"))
             if self.memory_text:
-                say("[dim]+ memoria de LOCAL_AI.md (/memory show) + fecha y directorio[/]")
+                say("[dim]+ memoria de Clay-Myrrh.md (/memory show) + fecha y directorio[/]")
             return
         self.s.system_prompt = DEFAULT_SYSTEM_PROMPT if arg.lower() == "reset" else arg
         TRANSIENT.pop("system_prompt", None)
@@ -2304,7 +2514,7 @@ class App:
                 raise ValueError(f"Uso: /memory {sub} <texto>")
             f = GLOBAL_MEMORY_FILE if sub == "add" else project_memory_file()
             f.parent.mkdir(parents=True, exist_ok=True)
-            prev = f.read_text(encoding="utf-8") if f.exists() else "# Memoria de Querencia\n"
+            prev = f.read_text(encoding="utf-8") if f.exists() else "# Memoria de Clay-Myrrh\n"
             f.write_text(prev.rstrip() + f"\n- {rest.strip()}\n", encoding="utf-8")
             self.memory_text = load_memory_text()
             self._mark_ctx()
@@ -2313,7 +2523,7 @@ class App:
             f = project_memory_file() if rest.strip().startswith("proy") else GLOBAL_MEMORY_FILE
             if not f.exists():
                 f.parent.mkdir(parents=True, exist_ok=True)
-                f.write_text("# Memoria de Querencia\n\n- \n", encoding="utf-8")
+                f.write_text("# Memoria de Clay-Myrrh\n\n- \n", encoding="utf-8")
             editor = os.environ.get("EDITOR", "notepad")
             say(f"[dim]Abriendo {f} con {editor}… (guarda y cierra para continuar)[/]")
             subprocess.call([editor, str(f)])
@@ -2461,7 +2671,7 @@ class App:
     def cmd_modo(self, arg: str):
         profiles = self.s.profiles or {}
         if not profiles:
-            raise ValueError("Aún no tienes perfiles: ejecuta /setup (o instalar-querencia.bat).")
+            raise ValueError("Aún no tienes perfiles: ejecuta /setup (o instalar-clay-myrrh.bat).")
         key = arg.strip().lower()
         if not key:
             from .inputbox import Choice, select
@@ -2481,7 +2691,7 @@ class App:
         entry = self.catalog.find(prof["model"])
         if entry is None:
             raise ValueError(f"El modelo del perfil ({prof['model']}) no está en models/. ¿Falta descargarlo? "
-                             f"(querencia --download)")
+                             f"(clay-myrrh --download)")
         if self.entry is not None and entry.name == self.entry.name:
             ok(f"Perfil aplicado ({prof.get('max_tokens')} tokens, temp {prof.get('temperature')}, "
                f"razonamiento {'on' if prof.get('thinking') else 'off'}).")
@@ -2535,15 +2745,25 @@ class App:
 
 
 SETTABLE = ("pdf_max_pages", "pdf_max_image_pages", "image_max_side", "keep_images_turns",
-            "vram_margin_mb", "auto_ctx_cap", "shell", "save_files", "project_rounds")
+            "vram_margin_mb", "auto_ctx_cap", "shell", "save_files", "project_rounds", "project_context")
 
 
 # ---------------------------------------------------------------------------
 # Arranque
 # ---------------------------------------------------------------------------
 
+def _edit_like(code: str) -> bool:
+    """True si el «archivo» de un bloque son en realidad ediciones (pares BUSCAR/REEMPLAZAR o <editar>)."""
+    return bool(wsmod._PAIR.search(code) or re.search(r"<editar\s", code, re.I))
+
+
+def chain_steps(text: str) -> list[str]:
+    """Separa una cadena de prompts por líneas que solo contienen --- (o ===)."""
+    return [x.strip() for x in re.split(r"(?m)^[ \t]*(?:-{3,}|={3,})[ \t]*$", text) if x.strip()]
+
+
 def parse_args(argv=None):
-    p = argparse.ArgumentParser(prog="querencia", description="Querencia — tu IA, en casa (llama.cpp / Ollama)",
+    p = argparse.ArgumentParser(prog="clay-myrrh", description="Clay-Myrrh — tu IA, en casa (llama.cpp / Ollama)",
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument("prompt", nargs="?", help="pregunta directa (modo one-shot; también acepta stdin)")
     p.add_argument("-m", "--model", help="archivo GGUF (nombre o ruta) o modelo de Ollama")
@@ -2552,6 +2772,9 @@ def parse_args(argv=None):
     p.add_argument("-f", "--file", action="append", help="archivo de texto a adjuntar (repetible)")
     p.add_argument("-s", "--system", help="prompt de sistema")
     p.add_argument("-d", "--dir", help="abrir una carpeta como proyecto (el modelo lee y modifica sus archivos)")
+    p.add_argument("--cadena", metavar="ARCHIVO", help="ejecutar una cadena de prompts (separados por ---) al arrancar")
+    p.add_argument("--desde", type=int, default=1, help="con --cadena: empezar en el paso N")
+    p.add_argument("--salir", action="store_true", help="con --cadena: cerrar al terminar en lugar de quedarse en el chat")
     p.add_argument("--gpu", help="capas en GPU: n, auto o max")
     p.add_argument("--ctx", help="contexto: n, 32k o auto")
     p.add_argument("--tokens", type=int, help="máximo de tokens por respuesta")
@@ -2560,6 +2783,8 @@ def parse_args(argv=None):
     p.add_argument("--theme", choices=list(render.THEMES), help="tema de colores")
     p.add_argument("--list", action="store_true", help="listar modelos y salir")
     p.add_argument("--doctor", action="store_true", help="diagnóstico y salir")
+    p.add_argument("--grafo", nargs="?", const="", metavar="CARPETA",
+                   help="crear o actualizar la red del proyecto en Clay-Myrrh.md (sin cargar modelo) y salir")
     p.add_argument("--setup", action="store_true", help="asistente de instalación visual (se abre en el navegador)")
     p.add_argument("--setup-cli", action="store_true", help="asistente de instalación en la consola")
     p.add_argument("--port", type=int, default=0, help="puerto del asistente visual (0 = libre)")
@@ -2580,7 +2805,7 @@ def pick_default(app: App, args) -> ModelEntry | None:
         if e is None and not args.model.lower().endswith(".gguf"):
             e = ModelEntry(name=args.model, kind="ollama", size_bytes=0)   # p. ej. "llava:7b"
         if e is None:
-            raise ValueError(f"No encuentro el modelo '{args.model}' (querencia --list)")
+            raise ValueError(f"No encuentro el modelo '{args.model}' (clay-myrrh --list)")
         return e
     needs_vision = bool(args.image or args.pdf) and app.s.vision_mode == "directo"
     if needs_vision:
@@ -2637,6 +2862,17 @@ def main(argv=None):
     if args.doctor:
         app.cmd_doctor("")
         return
+    if args.grafo is not None:
+        folder = Path(os.path.expandvars(args.grafo or args.dir or ".")).expanduser().resolve()
+        if not folder.is_dir():
+            error(f"No existe la carpeta {folder}.")
+            return
+        os.chdir(folder)
+        try:
+            app.cmd_grafo("")
+        except ValueError as e:
+            error(str(e))
+        return
     if args.setup:
         from .setup_gui import run_gui
         run_gui(args.port, not args.no_browser)
@@ -2676,6 +2912,8 @@ def main(argv=None):
     if entry is not None and not app.load(entry, plan):
         if one_shot:
             return
+    if args.cadena or args.yes:
+        app.assume_yes = args.yes or app.assume_yes
     if args.dir and not app.open_project(args.dir):
         return
     attach_failed = False
@@ -2696,5 +2934,21 @@ def main(argv=None):
         prompt = "\n\n".join(x for x in (piped, args.prompt or "") if x)
         app.assume_yes = args.yes        # one-shot: con -y se guardan los archivos propuestos
         app.send(prompt)
+        return
+    if args.cadena:
+        if app.engine is None:
+            error("No hay modelo cargado: la cadena no se puede ejecutar.")
+            return
+        app.print_banner()
+        try:
+            text = Path(args.cadena).expanduser().read_text(encoding="utf-8")
+        except OSError as e:
+            error(f"No se pudo leer la cadena: {e}")
+            return
+        app.run_chain(chain_steps(text), str(Path(args.cadena).expanduser()), args.desde)
+        if args.salir:
+            save_settings(app.s)
+            return
+        app.repl(banner=False)
         return
     app.repl()

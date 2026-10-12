@@ -1,8 +1,7 @@
 """
-Querencia — tu IA, en casa. CLI de IA local (llama.cpp / Ollama) estilo Claude Code / Gemini CLI.
+Clay-Myrrh — tu IA, en casa. CLI de IA local (llama.cpp / Ollama) estilo Claude Code / Gemini CLI.
 
-Se lanza con querencia.cmd o el acceso directo «Querencia» (el asistente, con instalar-querencia.bat).
-local-ai.cmd sigue funcionando como alias del nombre anterior.
+Se lanza con clay-myrrh.cmd o el acceso directo «Clay-Myrrh» (el asistente, con instalar-clay-myrrh.bat).
 El código vive en el paquete localai/; la descripción de cada módulo está en CLAUDE.md.
 """
 

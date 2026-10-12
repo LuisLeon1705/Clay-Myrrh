@@ -21,7 +21,10 @@ from pathlib import Path
 from . import hardware as H
 from .config import MODELS_DIR
 from .model_catalog import CATEGORIES, M, TIERS, category
-from .setup_wizard import (PLAN_FILE, PRESETS, apply_plan, evaluate, installed_path, mmproj_installed, pick_tiers,
+from . import i18n
+from .i18n import T
+from .model_catalog import cat_text, note, tier_text
+from .setup_wizard import (PLAN_FILE, PRESETS, apply_plan, preset_label, evaluate, installed_path, mmproj_installed, pick_tiers,
                            resolve_files)
 
 UI_DIR = Path(__file__).parent / "setup_ui"
@@ -43,7 +46,7 @@ def _hw_from(d: dict | None, base: H.Hardware) -> H.Hardware:
 
 def _fit_json(m, f: H.Fit, vision: bool) -> dict:
     size = m.size_gb + (m.mmproj_gb if vision else 0)
-    return {"key": m.key, "name": m.name, "note": m.note, "size_gb": round(size, 2), "params_b": m.params_b,
+    return {"key": m.key, "name": m.name, "note": note(m), "size_gb": round(size, 2), "params_b": m.params_b,
             "active_b": m.active_b, "moe": bool(m.active_b), "fits": f.fits, "where": f.where,
             "gpu_frac": round(f.gpu_frac, 3), "tps_low": f.tps_low, "tps_high": f.tps_high, "tps": round(f.tps, 1),
             "speed_words": H.speed_words(f.tps), "mem_gb": f.mem_needed,
@@ -65,6 +68,7 @@ class Setup:
         self.last_plan: dict | None = None
         self._demo: Path | None = None
         self.last_ping = 0.0          # la página avisa cada pocos segundos; si deja de hacerlo, se cerró la pestaña
+        self.end_seen = True          # False mientras la página no haya visto cómo terminó la última descarga
 
     def demo_dir(self) -> Path:
         """Página de demostración de los componentes (se genera la primera vez que se pide)."""
@@ -78,6 +82,11 @@ class Setup:
             return self._demo
 
     # ------------------------------------------------------------------ API
+    def _engine_help(self) -> dict:
+        from . import gpu
+        summary, steps = gpu.engine_advice(self.vendor)      # en el idioma actual
+        return {"summary": summary, "steps": steps}
+
     def state(self) -> dict:
         try:
             import llama_cpp  # noqa: F401
@@ -92,13 +101,13 @@ class Setup:
                 plan = None
         return {
             "hardware": self.detected.to_json(), "ram_bw": self.detected.ram_bw,
-            "presets": [{"label": l, "hw": p} for l, p in PRESETS],
+            "presets": [{"label": preset_label(l), "hw": p} for l, p in PRESETS], "lang": i18n.LANG,
             "gpus": sorted(([n.upper(), bw] for n, bw in H.GPU_BANDWIDTH.items()), key=lambda x: x[0]),
-            "categories": [{"key": c.key, "name": c.name, "desc": c.desc, "icon": ICONS.get(c.key, "•"),
-                            "needs_vision": c.needs_vision, "cloud": c.cloud} for c in CATEGORIES],
-            "tiers": {k: {"name": v[0], "desc": v[1]} for k, v in TIERS.items()},
+            "categories": [{"key": c.key, "name": cat_text(c)[0], "desc": cat_text(c)[1], "icon": ICONS.get(c.key, "•"),
+                            "needs_vision": c.needs_vision, "cloud": cat_text(c)[2]} for c in CATEGORIES],
+            "tiers": {k: {"name": tier_text(k)[0], "desc": tier_text(k)[1]} for k in TIERS},
             "engine_ok": engine, "models_dir": str(MODELS_DIR), "plan": plan,
-            "gpu_vendor": self.vendor, "engine_help": self.engine_help,
+            "gpu_vendor": self.vendor, "engine_help": self._engine_help(),
         }
 
     def recommend(self, body: dict) -> dict:
@@ -153,7 +162,7 @@ class Setup:
             files = self._plan_files(plan)
             err = ""
         except Exception as e:
-            files, err = [], f"No se pudo consultar Hugging Face: {e}"
+            files, err = [], T(f"No se pudo consultar Hugging Face: {e}", f"Could not query Hugging Face: {e}")
         import shutil
         free = shutil.disk_usage(str(MODELS_DIR.parent)).free
         return {"files": [{"name": d.name, "size": s, "folder": d.parent.name} for _, _, s, d in files],
@@ -163,12 +172,13 @@ class Setup:
     def start_download(self) -> dict:
         with self.lock:
             if self.progress["state"] == "running":
-                return {"ok": False, "message": "Ya hay una descarga en curso"}
+                return {"ok": False, "message": T("Ya hay una descarga en curso", "A download is already in progress")}
             if not self.last_plan:
-                return {"ok": False, "message": "No hay plan"}
+                return {"ok": False, "message": T("No hay plan", "There is no plan")}
             self.cancel.clear()
+            self.end_seen = False
             self.progress = {"state": "running", "files": [], "total": 0, "done": 0, "speed": 0.0, "eta": None,
-                             "message": "Preparando…"}
+                             "message": T("Preparando…", "Preparing…")}
         threading.Thread(target=self._download, daemon=True).start()
         return {"ok": True}
 
@@ -210,18 +220,18 @@ class Setup:
                                 el = max(time.time() - t0, 0.5)
                                 p["speed"] = p["done"] / el
                                 p["eta"] = (p["total"] - p["done"]) / p["speed"] if p["speed"] else None
-                                p["message"] = f"Descargando {dest.name}"
+                                p["message"] = T(f"Descargando {dest.name}", f"Downloading {dest.name}")
                 if part.stat().st_size != size:
-                    raise RuntimeError(f"{dest.name}: tamaño inesperado")
+                    raise RuntimeError(T(f"{dest.name}: tamaño inesperado", f"{dest.name}: unexpected size"))
                 part.replace(dest)
                 fstate["state"] = "hecho"
                 base_done += size
             apply_plan(self.last_plan)
             with self.lock:
-                p.update(state="done", message="¡Listo! Modelos descargados y configuración aplicada.")
+                p.update(state="done", message=T("¡Listo! Modelos descargados y configuración aplicada.", "Done! Models downloaded and settings applied."))
         except InterruptedError:
             with self.lock:
-                p.update(state="cancelled", message="Descarga pausada. Puedes reanudarla luego (se conserva lo bajado).")
+                p.update(state="cancelled", message=T("Descarga pausada. Puedes reanudarla luego (se conserva lo bajado).", "Download paused. You can resume it later (what was downloaded is kept)."))
         except Exception as e:
             with self.lock:
                 p.update(state="error", message=str(e))
@@ -258,7 +268,12 @@ def make_handler(app: Setup, stop: threading.Event):
         def do_GET(self):
             path = self.path.split("?")[0]
             if path in ("/", "/index.html"):
+                from urllib.parse import parse_qs, urlparse
+                lang = parse_qs(urlparse(self.path).query).get("lang", [""])[0]
+                if lang in i18n.LANGS:          # botón ES/EN de la página: todo el servidor pasa a ese idioma
+                    i18n.set_lang(lang)
                 html = (UI_DIR / "index.html").read_text(encoding="utf-8").replace("{{TOKEN}}", app.token)
+                html = html.replace("{{LANG}}", i18n.LANG)
                 return self._send(200, html, "text/html")
             if path == "/favicon.ico":
                 return self._send(200, (Path(__file__).parent / "assets" / "clay-myrrh.ico").read_bytes(), "image/x-icon")
@@ -286,6 +301,9 @@ def make_handler(app: Setup, stop: threading.Event):
                 return self._send(200, {"groups": webkit.groups(), "total": sum(len(g["items"]) for g in webkit.groups())})
             if path == "/api/progress":
                 with app.lock:
+                    app.last_ping = time.time()
+                    if app.progress.get("state") in ("done", "error", "cancelled"):
+                        app.end_seen = True
                     return self._send(200, dict(app.progress))
             self._send(404, {"error": "no existe"})
 
@@ -312,27 +330,44 @@ def make_handler(app: Setup, stop: threading.Event):
     return Handler
 
 
+# Sin latidos de la página se apaga el asistente. Los navegadores frenan los temporizadores de las pestañas en
+# segundo plano (hasta uno por minuto), por eso el margen es amplio; y si la página aún no vio cómo terminó la
+# descarga, se la espera mucho más, para que al volver a la pestaña vea el resumen final.
+PING_GRACE = 180
+END_GRACE = 1800
+
+
 def run_gui(port: int = 0, open_browser: bool = True) -> bool:
     from .render import console, say
-    with console.status("[dim]Leyendo tu hardware…[/]", spinner="dots"):
+    with console.status(T("[dim]Leyendo tu hardware…[/]", "[dim]Reading your hardware…[/]"), spinner="dots"):
         app = Setup()
     stop = threading.Event()
     srv = ThreadingHTTPServer(("127.0.0.1", port), make_handler(app, stop))
     url = f"http://127.0.0.1:{srv.server_address[1]}/"
     threading.Thread(target=srv.serve_forever, daemon=True).start()
-    say(f"\n  [accent]Clay-Myrrh · asistente de instalación abierto en tu navegador[/]\n  {url}\n"
+    say(T(f"\n  [accent]Clay-Myrrh · asistente de instalación abierto en tu navegador[/]\n  {url}\n"
         f"  [dim]Si no se abrió solo, copia esa dirección en el navegador. No cierres esta ventana hasta "
-        f"terminar (Ctrl+C para salir).[/]\n")
+        f"terminar (Ctrl+C para salir).[/]\n", f"\n  [accent]Clay-Myrrh · setup assistant open in your browser[/]\n  {url}\n"
+        f"  [dim]If it didn't open by itself, copy that address into the browser. Don't close this window until "
+        f"you're done (Ctrl+C to quit).[/]\n"))
     if open_browser:
         webbrowser.open(url)
     try:
+        announced = False
         while not stop.wait(0.5):
+            state = app.progress.get("state")
+            if state == "done" and not announced:
+                announced = True
+                say(T("  [ok]✓[/] Descarga terminada y configuración aplicada. Vuelve a la página del asistente para "
+                    "ver el resumen; esta ventana se cerrará sola.", "  [ok]✓[/] Download finished and settings applied. Go back to the assistant's page to "
+                    "see the summary; this window will close by itself."))
             # pestaña cerrada (sin latidos) y nada descargándose: se cierra también esta ventana
-            if app.last_ping and time.time() - app.last_ping > 30 and app.progress.get("state") != "running":
-                say("[dim]Se cerró la página del asistente.[/]")
+            quiet = time.time() - app.last_ping if app.last_ping else 0
+            if state != "running" and quiet > (PING_GRACE if app.end_seen else END_GRACE):
+                say(T("[dim]Se cerró la página del asistente.[/]", "[dim]The assistant page was closed.[/]"))
                 break
     except KeyboardInterrupt:
         pass
     srv.shutdown()
-    say("[dim]Asistente cerrado.[/]")
+    say(T("[dim]Asistente cerrado.[/]", "[dim]Assistant closed.[/]"))
     return True

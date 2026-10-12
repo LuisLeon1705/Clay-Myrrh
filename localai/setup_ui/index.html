@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="es">
+<html lang="{{LANG}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="setup-token" content="{{TOKEN}}">
+<meta name="setup-lang" content="{{LANG}}">
 <title>Clay-Myrrh · Asistente de instalación</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="/favicon.ico">
@@ -11,16 +12,18 @@
 <link rel="stylesheet" href="guide.css">
 </head>
 <body>
+<!-- Textos: en español en el HTML; la versión inglesa va en data-en (y data-en-label para aria-label) -->
 <header class="top">
-  <div class="brand"><img class="logo" src="favicon.svg" alt="" width="26" height="26"> Clay-Myrrh <small>tu IA, en casa</small></div>
-  <nav class="tabs" id="tabs" aria-label="Secciones">
-    <button type="button" class="on" data-view="install" aria-current="page">🧭 Instalación</button>
-    <button type="button" data-view="compare">⚖️ Comparativa</button>
-    <button type="button" data-view="components">🧱 Componentes</button>
+  <div class="brand"><img class="logo" src="favicon.svg" alt="" width="26" height="26"> Clay-Myrrh <small data-en="your AI, at home">tu IA, en casa</small></div>
+  <nav class="tabs" id="tabs" aria-label="Secciones" data-en-label="Sections">
+    <button type="button" class="on" data-view="install" aria-current="page" data-en="🧭 Setup">🧭 Instalación</button>
+    <button type="button" data-view="compare" data-en="⚖️ Comparison">⚖️ Comparativa</button>
+    <button type="button" data-view="components" data-en="🧱 Components">🧱 Componentes</button>
   </nav>
   <ol class="stepper" id="stepper"></ol>
-  <button class="btn primary small" id="open-guide" type="button">▶ Guía</button>
-  <button class="link" id="open-glossary" type="button">📖 Glosario</button>
+  <button class="btn primary small" id="open-guide" type="button" data-en="▶ Guide">▶ Guía</button>
+  <button class="link" id="open-glossary" type="button" data-en="📖 Glossary">📖 Glosario</button>
+  <a class="link small" id="lang-switch" href="?lang=en" title="English">EN</a>
 </header>
 
 <main id="app">
@@ -28,13 +31,14 @@
   <section class="step" data-step="0">
     <div class="hero">
       <div>
-        <span class="eyebrow">Bienvenido a Clay-Myrrh · tu IA, en casa</span>
-        <h1>Tu propia IA, funcionando en tu ordenador</h1>
-        <p class="lead">En unos minutos te recomiendo qué modelos instalar según <b>tu equipo</b> y <b>para qué los
+        <span class="eyebrow" data-en="Welcome to Clay-Myrrh · your AI, at home">Bienvenido a Clay-Myrrh · tu IA, en casa</span>
+        <h1 data-en="Your own AI, running on your computer">Tu propia IA, funcionando en tu ordenador</h1>
+        <p class="lead" data-en="In a few minutes I'll recommend which models to install based on &lt;b&gt;your machine&lt;/b&gt; and &lt;b&gt;what you want them for&lt;/b&gt;, explain what to expect from each one and leave everything downloaded and configured.">En unos minutos te recomiendo qué modelos instalar según <b>tu equipo</b> y <b>para qué los
           quieres</b>, te explico qué esperar de cada uno y lo dejo todo descargado y configurado.</p>
         <div class="callout warn" id="engine-warning" hidden>
+          <span data-en="&lt;b&gt;The AI engine (llama-cpp-python) is missing.&lt;/b&gt; The assistant works anyway, but you'll need to install it to use the models afterwards.">
           <b>Falta el motor de IA (llama-cpp-python).</b> El asistente funciona igual, pero para usar los modelos
-          después tendrás que instalarlo. <span id="engine-summary"></span>
+          después tendrás que instalarlo.</span> <span id="engine-summary"></span>
           <ol id="engine-steps" class="small" style="margin:.5rem 0 0;padding-left:1.2rem"></ol>
         </div>
       </div>
@@ -44,51 +48,51 @@
     </div>
     <div class="guide-cta" id="guide-cta">
       <div class="guide-cta-mascots" aria-hidden="true"></div>
-      <div><b>Antes de instalar: ¿local o nube?</b><br><span class="muted small">Guía rápida en 11 pasos: Claude, Gemini,
+      <div data-en="&lt;b&gt;Before installing: local or cloud?&lt;/b&gt;&lt;br&gt;&lt;span class=&quot;muted small&quot;&gt;Quick 11-step guide: Claude, Gemini, Codex and your local AI face to face, what it costs to match them and what an AI on your PC is really for.&lt;/span&gt;"><b>Antes de instalar: ¿local o nube?</b><br><span class="muted small">Guía rápida en 11 pasos: Claude, Gemini,
         Codex y tu IA local cara a cara, cuánto cuesta igualarlas y para qué sirve de verdad una IA en tu PC.</span></div>
-      <button class="btn primary" type="button" data-open-guide>▶ Ver la guía</button>
-      <button class="link small" type="button" data-view-go="compare">Ver la comparativa →</button>
+      <button class="btn primary" type="button" data-open-guide data-en="▶ Watch the guide">▶ Ver la guía</button>
+      <button class="link small" type="button" data-view-go="compare" data-en="See the comparison →">Ver la comparativa →</button>
     </div>
     <div class="grid3">
-      <div class="card feature"><div class="ficon">🔒</div><h3>Privada</h3><p>Tus textos, documentos y fotos no salen de tu ordenador.</p></div>
-      <div class="card feature"><div class="ficon">💸</div><h3>Sin cuotas</h3><p>Una vez descargada, úsala todo lo que quieras sin pagar por uso.</p></div>
-      <div class="card feature"><div class="ficon">📡</div><h3>Sin internet</h3><p>Funciona sin conexión; internet solo hace falta para descargarla.</p></div>
+      <div class="card feature"><div class="ficon">🔒</div><h3 data-en="Private">Privada</h3><p data-en="Your texts, documents and photos never leave your computer.">Tus textos, documentos y fotos no salen de tu ordenador.</p></div>
+      <div class="card feature"><div class="ficon">💸</div><h3 data-en="No fees">Sin cuotas</h3><p data-en="Once downloaded, use it as much as you like without paying per use.">Una vez descargada, úsala todo lo que quieras sin pagar por uso.</p></div>
+      <div class="card feature"><div class="ficon">📡</div><h3 data-en="Offline">Sin internet</h3><p data-en="It works without a connection; you only need internet to download it.">Funciona sin conexión; internet solo hace falta para descargarla.</p></div>
     </div>
     <div class="card">
-      <h3>Lo que vamos a hacer</h3>
+      <h3 data-en="What we're going to do">Lo que vamos a hacer</h3>
       <ol class="howto">
-        <li><b>Ver tu equipo.</b> La memoria de tu tarjeta gráfica y de tu ordenador decide qué modelos caben y a qué velocidad.</li>
-        <li><b>Elegir para qué la quieres.</b> No es lo mismo escribir relatos que programar o leer documentos escaneados.</li>
-        <li><b>Escoger el nivel.</b> Para cada uso te enseño tres opciones (rápida, equilibrada y máxima calidad) con su velocidad real aproximada.</li>
-        <li><b>Descargar y listo.</b> Bajo los modelos y dejo la configuración preparada.</li>
+        <li data-en="&lt;b&gt;Look at your machine.&lt;/b&gt; Your graphics card's and computer's memory decide which models fit and how fast they run."><b>Ver tu equipo.</b> La memoria de tu tarjeta gráfica y de tu ordenador decide qué modelos caben y a qué velocidad.</li>
+        <li data-en="&lt;b&gt;Choose what you want it for.&lt;/b&gt; Writing stories is not the same as programming or reading scanned documents."><b>Elegir para qué la quieres.</b> No es lo mismo escribir relatos que programar o leer documentos escaneados.</li>
+        <li data-en="&lt;b&gt;Pick the level.&lt;/b&gt; For each use I show you three options (fast, balanced and best quality) with their approximate real speed."><b>Escoger el nivel.</b> Para cada uso te enseño tres opciones (rápida, equilibrada y máxima calidad) con su velocidad real aproximada.</li>
+        <li data-en="&lt;b&gt;Download and done.&lt;/b&gt; I download the models and leave the settings ready."><b>Descargar y listo.</b> Bajo los modelos y dejo la configuración preparada.</li>
       </ol>
     </div>
   </section>
 
   <!-- 1 · Tu equipo -->
   <section class="step" data-step="1" hidden>
-    <h2>Tu equipo</h2>
-    <p class="lead">Lo he detectado automáticamente. Si algo no es correcto puedes cambiarlo, o <b>simular otro
+    <h2 data-en="Your machine">Tu equipo</h2>
+    <p class="lead" data-en="I detected it automatically. If something is wrong you can change it, or &lt;b&gt;simulate another machine&lt;/b&gt; (for example, to advise someone or before buying).">Lo he detectado automáticamente. Si algo no es correcto puedes cambiarlo, o <b>simular otro
       equipo</b> (por ejemplo, para aconsejar a alguien o antes de comprar).</p>
     <div class="two">
       <div class="card">
-        <div class="row between"><h3>Datos</h3>
-          <select id="preset" aria-label="Simular otro equipo"><option value="">Simular otro equipo…</option></select>
+        <div class="row between"><h3 data-en="Data">Datos</h3>
+          <select id="preset" aria-label="Simular otro equipo" data-en-label="Simulate another machine"><option value="" data-en="Simulate another machine…">Simular otro equipo…</option></select>
         </div>
         <div class="hwgrid" id="hw-form"></div>
-        <button class="link small" id="hw-reset" type="button">↺ Volver a lo detectado</button>
+        <button class="link small" id="hw-reset" type="button" data-en="↺ Back to what was detected">↺ Volver a lo detectado</button>
       </div>
       <div class="card">
-        <h3>Cómo influye en la velocidad <button class="info" data-term="bandwidth" type="button">?</button></h3>
-        <p class="muted small">Para escribir cada palabra la IA tiene que «leer» el modelo entero de la memoria.
+        <h3><span data-en="How it affects speed">Cómo influye en la velocidad</span> <button class="info" data-term="bandwidth" type="button">?</button></h3>
+        <p class="muted small" data-en="To write each word the AI has to «read» the whole model from memory. The wider the lane, the faster it writes.">Para escribir cada palabra la IA tiene que «leer» el modelo entero de la memoria.
           Cuanto más ancho el carril, más rápido escribe.</p>
         <div id="lanes"></div>
         <div class="class-badge" id="hw-class"></div>
       </div>
     </div>
     <div class="card">
-      <h3>¿Qué velocidad es «rápida»? <button class="info" data-term="token" type="button">?</button></h3>
-      <p class="muted small">La velocidad se mide en <b>tokens por segundo</b> (un token ≈ ¾ de palabra). Pulsa para sentir la diferencia:</p>
+      <h3><span data-en="What speed is «fast»?">¿Qué velocidad es «rápida»?</span> <button class="info" data-term="token" type="button">?</button></h3>
+      <p class="muted small" data-en="Speed is measured in &lt;b&gt;tokens per second&lt;/b&gt; (a token ≈ ¾ of a word). Press to feel the difference:">La velocidad se mide en <b>tokens por segundo</b> (un token ≈ ¾ de palabra). Pulsa para sentir la diferencia:</p>
       <div class="demo-buttons" id="demo-buttons"></div>
       <div class="typing" id="demo-box" aria-live="polite"></div>
     </div>
@@ -96,31 +100,31 @@
 
   <!-- 2 · Usos -->
   <section class="step" data-step="2" hidden>
-    <h2>¿Para qué quieres la IA?</h2>
-    <p class="lead">Marca todo lo que te interese. Para cada uso buscaré el modelo que mejor encaja con tu equipo.</p>
+    <h2 data-en="What do you want the AI for?">¿Para qué quieres la IA?</h2>
+    <p class="lead" data-en="Tick everything you're interested in. For each use I'll look for the model that best fits your machine.">Marca todo lo que te interese. Para cada uso buscaré el modelo que mejor encaja con tu equipo.</p>
     <div class="cats" id="cats"></div>
   </section>
 
   <!-- 3 · Niveles -->
   <section class="step" data-step="3" hidden>
-    <h2>Elige el nivel de cada uso</h2>
+    <h2 data-en="Choose the level for each use">Elige el nivel de cada uso</h2>
     <div class="tier-legend" id="tier-legend"></div>
     <div id="levels"></div>
   </section>
 
   <!-- 4 · Resumen -->
   <section class="step" data-step="4" hidden>
-    <h2>Resumen</h2>
+    <h2 data-en="Summary">Resumen</h2>
     <div class="two">
       <div class="card">
-        <h3>Tu selección</h3>
+        <h3 data-en="Your selection">Tu selección</h3>
         <div id="sum-choices"></div>
-        <h3 style="margin-top:1.4rem">¿Cuál será tu uso principal?</h3>
-        <p class="muted small">Es el modelo que se carga al abrir Clay-Myrrh. Los demás se activan con <code>/modo</code>.</p>
+        <h3 style="margin-top:1.4rem" data-en="What will be your main use?">¿Cuál será tu uso principal?</h3>
+        <p class="muted small" data-en="It's the model loaded when Clay-Myrrh opens. The others are switched on with &lt;code&gt;/mode&lt;/code&gt;.">Es el modelo que se carga al abrir Clay-Myrrh. Los demás se activan con <code>/modo</code>.</p>
         <div id="sum-primary" class="radios"></div>
       </div>
       <div class="card">
-        <h3>Descarga</h3>
+        <h3 data-en="Download">Descarga</h3>
         <div id="sum-files" class="files"></div>
         <div id="sum-disk"></div>
       </div>
@@ -129,21 +133,21 @@
 
   <!-- 5 · Descarga -->
   <section class="step" data-step="5" hidden>
-    <h2>Descargando</h2>
-    <p class="lead" id="dl-message">Preparando…</p>
+    <h2 data-en="Downloading">Descargando</h2>
+    <p class="lead" id="dl-message" data-en="Preparing…">Preparando…</p>
     <div class="card">
       <div class="bigbar"><span id="dl-bar"></span></div>
       <div class="row between small muted"><span id="dl-bytes"></span><span id="dl-speed"></span><span id="dl-eta"></span></div>
       <div id="dl-files" class="files" style="margin-top:1rem"></div>
     </div>
-    <p class="muted small">Puedes pausar: lo descargado se conserva y se reanuda la próxima vez.</p>
+    <p class="muted small" data-en="You can pause: what was downloaded is kept and resumes next time.">Puedes pausar: lo descargado se conserva y se reanuda la próxima vez.</p>
   </section>
 
   <!-- 6 · Listo -->
   <section class="step" data-step="6" hidden>
     <div class="done">
       <div class="done-icon">🎉</div>
-      <h2>¡Todo listo!</h2>
+      <h2 data-en="All set!">¡Todo listo!</h2>
       <p class="lead" id="done-text"></p>
     </div>
     <div class="grid3" id="cheats"></div>
@@ -154,17 +158,17 @@
 <main id="view-components" class="view" hidden></main>
 
 <footer class="nav">
-  <button class="btn ghost" id="back" type="button">← Atrás</button>
+  <button class="btn ghost" id="back" type="button" data-en="← Back">← Atrás</button>
   <span class="muted small" id="nav-hint"></span>
   <button class="btn primary" id="next" type="button">Empezar →</button>
 </footer>
 
-<aside class="drawer" id="glossary" aria-label="Glosario" hidden>
-  <div class="row between"><h3>Glosario</h3><button class="link" id="close-glossary" type="button">✕</button></div>
+<aside class="drawer" id="glossary" aria-label="Glosario" data-en-label="Glossary" hidden>
+  <div class="row between"><h3 data-en="Glossary">Glosario</h3><button class="link" id="close-glossary" type="button">✕</button></div>
   <dl id="glossary-list"></dl>
 </aside>
 <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
-<div class="guide" id="guide" role="dialog" aria-modal="true" aria-label="Guía: IA local o en la nube" hidden></div>
+<div class="guide" id="guide" role="dialog" aria-modal="true" aria-label="Guía: IA local o en la nube" data-en-label="Guide: local or cloud AI" hidden></div>
 <script src="setup.js"></script>
 <script src="guide.js"></script>
 </body>

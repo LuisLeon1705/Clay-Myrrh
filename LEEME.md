@@ -67,6 +67,24 @@ Cada respuesta reserva un 15 % de `/tokens` (ajustable 10–25 % en `/settings`)
 - Prueba simulada (RX 6800 + integrada de 512 MB): 33/33 capas del 9B en GPU, 25/41 del 35B MoE; `/doctor`
   explica cómo conseguir el motor Vulkan si el instalado es solo CPU. La RTX 3070 real sigue por NVML.
 
+## 4.1 · interfaz en inglés y arreglo del asistente (octubre 2026)
+- Todos los mensajes de la consola, `/doctor`, `/zero`, el asistente de consola y el asistente web (guía,
+  comparativa, catálogo de modelos) en español o inglés según `language`. Técnica: `T(es, en)` junto a cada
+  texto (Python) y `data-en` / `t(es, en)` (web), para que nunca se desincronicen. Con la interfaz en inglés,
+  el prompt de sistema por defecto pide respuestas en inglés. Las instrucciones al modelo siguen en español.
+- Asistente: si la pestaña estaba en segundo plano durante la descarga, el navegador frenaba los latidos
+  (1 por minuto) y el servidor se apagaba al terminar, antes de que la página viera el final. Ahora espera a
+  que la página vea el resultado (hasta 30 min), el margen sin latidos es de 3 min y la página se pone al día
+  al volver a la pestaña. La consola avisa cuando termina la descarga.
+
+## 4.0.1 · comandos en español o inglés (octubre 2026)
+- Ajuste `language` (auto = idioma de Windows · es · en), en `/ajustes`, `/set language` y `--lang`. Menú,
+  autocompletado, `/ayuda`, consejos del banner y caja de entrada en el idioma elegido; los nombres del otro
+  idioma siguen funcionando como alias ocultos (`/deshacer` = `/undo`, `/vision lector` = `/vision reader`).
+- Todos los comandos tienen nombre en los dos idiomas (`/ayuda`·`/help`, `/modelo`·`/model`,
+  `/ajustes`·`/settings`…). Opciones en inglés: `--chain`, `--from`, `--exit`, `--graph`.
+- El autocompletado de comandos con ruta (`/proyecto`, `/cadena`…) ya sugiere también sus opciones.
+
 ## Red del proyecto y Clay-Myrrh.md (octubre 2026)
 - `/grafo` genera una red del proyecto al estilo de Graphify, sin modelo. Incluye una línea por archivo con
   sus conexiones y avisos de piezas que no encajan, y la guarda en `Clay-Myrrh.md`. Ese archivo sustituye

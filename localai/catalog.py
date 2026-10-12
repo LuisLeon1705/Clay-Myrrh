@@ -19,6 +19,7 @@ from typing import Any
 
 from .config import MODELS_DIR, NON_CHAT_DIRS
 from .gguf import GGUFError, GGUFInfo, read_gguf
+from .i18n import T
 
 # Arquitectura del LLM -> prefijos de projector_type compatibles
 PROJECTOR_COMPAT: dict[str, tuple[str, ...]] = {
@@ -99,7 +100,10 @@ class ModelEntry:
         hay = f"{self.name} {self.info.name if self.info else ''}".lower()
         for rx, repo, fname, note in MMPROJ_SOURCES:
             if re.search(rx, hay):
-                return repo, fname, note
+                return repo, fname, T(note, note.replace("alternativa", "alternative").replace(
+                    "fine-tune: puede funcionar si no se tocó la torre visual", "fine-tune: may work if the vision tower was untouched").replace(
+                    "NO oficial (los repos oficiales no publican mmproj de Gemma 3n); experimental",
+                    "NOT official (the official repos don't publish a Gemma 3n mmproj); experimental"))
         return None
 
 
@@ -218,7 +222,7 @@ def pair_mmproj(entry: ModelEntry, projectors: list[GGUFInfo], override: str | N
         return
     entry.mmproj, entry.vision, entry.vision_note = None, "no", ""
     if override == "none":
-        entry.vision_note = "visión desactivada manualmente (/mmproj none)"
+        entry.vision_note = T("visión desactivada manualmente (/mmproj none)", "vision disabled manually (/mmproj none)")
         return
     if override:
         p = next((x for x in projectors if Path(x.path).name == override or x.path == override), None)
@@ -230,8 +234,9 @@ def pair_mmproj(entry: ModelEntry, projectors: list[GGUFInfo], override: str | N
         if p is not None:
             entry.mmproj, entry.vision = p, "si"
             if score_mmproj(info, entry.name, p) <= 0:
-                entry.vision_note = (f"forzado; dimensiones/tipo no cuadran "
-                                     f"(proj_dim={p.projection_dim}, n_embd={info.n_embd})")
+                entry.vision_note = T((f"forzado; dimensiones/tipo no cuadran "
+                                     f"(proj_dim={p.projection_dim}, n_embd={info.n_embd})"), (f"forced; dimensions/type don't match "
+                                     f"(proj_dim={p.projection_dim}, n_embd={info.n_embd})"))
             return
     scored = sorted(((score_mmproj(info, entry.name, p), p) for p in projectors),
                     key=lambda t: t[0], reverse=True)
@@ -240,8 +245,9 @@ def pair_mmproj(entry: ModelEntry, projectors: list[GGUFInfo], override: str | N
         return
     if _is_multimodal_family(info, entry.name):
         entry.vision = "falta_mmproj"
-        entry.vision_note = (f"arquitectura multimodal ({info.arch}, n_embd={info.n_embd}) "
-                             f"pero no hay ningún mmproj con projection_dim={info.n_embd}")
+        entry.vision_note = T((f"arquitectura multimodal ({info.arch}, n_embd={info.n_embd}) "
+                             f"pero no hay ningún mmproj con projection_dim={info.n_embd}"), (f"multimodal architecture ({info.arch}, n_embd={info.n_embd}) "
+                             f"but there is no mmproj with projection_dim={info.n_embd}"))
 
 
 def ollama_models(host: str, timeout: float = 1.0) -> list[ModelEntry]:
@@ -296,7 +302,7 @@ def build_catalog(settings, include_ollama: bool = True, host: str | None = None
 def entry_from_path(path: str, projectors: list[GGUFInfo]) -> ModelEntry:
     info = read_gguf(path)
     if info.is_clip:
-        raise GGUFError(f"{Path(path).name} es un proyector mmproj, no un modelo de chat")
+        raise GGUFError(T(f"{Path(path).name} es un proyector mmproj, no un modelo de chat", f"{Path(path).name} is an mmproj projector, not a chat model"))
     e = ModelEntry(name=Path(path).name, kind="gguf", size_bytes=info.file_size, path=str(Path(path).resolve()), info=info)
     pair_mmproj(e, projectors)
     return e

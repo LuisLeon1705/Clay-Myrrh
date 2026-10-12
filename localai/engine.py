@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from . import llamalog
+from .i18n import T
 from .catalog import ModelEntry
 from .memory import KV_GGML_TYPE, DeviceLog, RealUsage, parse_buffer_logs, parse_device_logs, probe
 
@@ -223,17 +224,17 @@ def image_tokens(projector: str | None, w: int, h: int) -> int:
 def _hints_from_log(lines: list[str], entry: ModelEntry) -> tuple[str, list[str]]:
     txt = "\n".join(lines[-200:]).lower()
     if "outofdevicememory" in txt or "out of memory" in txt or "failed to allocate" in txt or "cudamalloc" in txt:
-        return ("VRAM insuficiente al reservar los buffers del modelo.",
-                ["/mem para ver el desglose", "/gpu auto o /gpu <n> para dejar capas en CPU",
-                 "/ctx <n> más pequeño o /kv q8_0 para reducir la caché KV",
-                 "cierra juegos/apps que usen la GPU (restan VRAM libre)"])
+        return (T("VRAM insuficiente al reservar los buffers del modelo.", "Not enough VRAM to allocate the model buffers."),
+                [T("/mem para ver el desglose", "/mem to see the breakdown"), T("/gpu auto o /gpu <n> para dejar capas en CPU", "/gpu auto or /gpu <n> to keep layers on the CPU"),
+                 T("/ctx <n> más pequeño o /kv q8_0 para reducir la caché KV", "a smaller /ctx <n> or /kv q8_0 to shrink the KV cache"),
+                 T("cierra juegos/apps que usen la GPU (restan VRAM libre)", "close games/apps that use the GPU (they take free VRAM)")])
     if "unknown model architecture" in txt or "unknown architecture" in txt:
-        return (f"Esta versión de llama.cpp no reconoce la arquitectura '{entry.arch}'.",
-                ["actualiza llama-cpp-python", "o usa llama-server (llama.cpp) / Ollama con este GGUF"])
+        return (T(f"Esta versión de llama.cpp no reconoce la arquitectura '{entry.arch}'.", f"This llama.cpp version does not recognise the '{entry.arch}' architecture."),
+                [T("actualiza llama-cpp-python", "update llama-cpp-python"), T("o usa llama-server (llama.cpp) / Ollama con este GGUF", "or use llama-server (llama.cpp) / Ollama with this GGUF")])
     if "wrong number of tensors" in txt or "missing tensor" in txt or "unexpected tensor" in txt:
-        return ("El GGUF no coincide con lo que espera llama.cpp (tensores distintos).",
-                ["el archivo puede estar incompleto o ser de una versión más nueva de llama.cpp"])
-    return ("llama.cpp no pudo cargar el modelo.", ["/debug muestra el log nativo completo"])
+        return (T("El GGUF no coincide con lo que espera llama.cpp (tensores distintos).", "The GGUF does not match what llama.cpp expects (different tensors)."),
+                [T("el archivo puede estar incompleto o ser de una versión más nueva de llama.cpp", "the file may be incomplete or from a newer llama.cpp version")])
+    return (T("llama.cpp no pudo cargar el modelo.", "llama.cpp could not load the model."), [T("/debug muestra el log nativo completo", "/debug shows the full native log")])
 
 
 _FLAT_CLS = None
@@ -294,7 +295,7 @@ class LlamaEngine:
         self.load_time = 0.0
 
         if kv_type != "f16" and not flash_attn:
-            raise EngineError("La caché KV cuantizada requiere flash-attn.", ["/kv f16 o activa flash-attn"])
+            raise EngineError(T("La caché KV cuantizada requiere flash-attn.", "A quantised KV cache requires flash-attn."), [T("/kv f16 o activa flash-attn", "/kv f16 or enable flash-attn")])
 
         kw: dict[str, Any] = {}
         if kv_type != "f16":
@@ -321,10 +322,11 @@ class LlamaEngine:
                 self.vision = True
             except Exception as e:
                 log = "\n".join(l for l in llamalog.since(pos)[-40:] if "clip" in l.lower() or "mtmd" in l.lower() or "error" in l.lower())
-                self.vision_error = (f"No se pudo cargar el mmproj '{Path(entry.mmproj.path).name}': {e}. "
-                                     f"Se usa el modelo solo como texto.\n{log[-800:]}")
+                self.vision_error = T((f"No se pudo cargar el mmproj '{Path(entry.mmproj.path).name}': {e}. "
+                                     f"Se usa el modelo solo como texto.\n{log[-800:]}"), (f"Could not load the mmproj '{Path(entry.mmproj.path).name}': {e}. "
+                                     f"The model is used as text-only.\n{log[-800:]}"))
         elif entry.vision == "falta_mmproj":
-            self.vision_error = f"Modelo multimodal sin mmproj: se carga solo como texto. {entry.vision_note}"
+            self.vision_error = T(f"Modelo multimodal sin mmproj: se carga solo como texto. {entry.vision_note}", f"Multimodal model without an mmproj: loaded as text-only. {entry.vision_note}")
 
         self.load_time = time.time() - t0
         self.real: RealUsage = parse_buffer_logs(llamalog.since(pos))
@@ -456,11 +458,11 @@ class LlamaEngine:
             m = re.search(r"(\d+)\s*>\s*(\d+)", msg) or re.search(r"\((\d+)\) exceed context window of (\d+)", msg)
             if "exceed" in msg.lower() and m:
                 raise EngineError(
-                    f"El mensaje no cabe en el contexto: {m.group(1)} tokens > n_ctx {m.group(2)}.",
-                    ["/ctx 16k (o mayor) para ampliar el contexto", "/compact para resumir la conversación",
-                     "adjunta menos páginas o imágenes más pequeñas"]) from None
+                    T(f"El mensaje no cabe en el contexto: {m.group(1)} tokens > n_ctx {m.group(2)}.", f"The message does not fit in the context: {m.group(1)} tokens > n_ctx {m.group(2)}."),
+                    [T("/ctx 16k (o mayor) para ampliar el contexto", "/ctx 16k (or more) to enlarge the context"), T("/compact para resumir la conversación", "/compact to summarise the conversation"),
+                     T("adjunta menos páginas o imágenes más pequeñas", "attach fewer pages or smaller images")]) from None
             if "mtmd" in msg.lower() or "bitmap" in msg.lower() or "chunk" in msg.lower():
-                raise EngineError(f"Fallo del codificador de visión: {msg}", ["/debug para ver el log de mtmd"],
+                raise EngineError(T(f"Fallo del codificador de visión: {msg}", f"Vision encoder failure: {msg}"), [T("/debug para ver el log de mtmd", "/debug to see the mtmd log")],
                                   llamalog.tail(40)) from None
             raise
         finally:
@@ -495,7 +497,7 @@ class OllamaEngine:
         try:
             import requests
         except ImportError:
-            raise EngineError("Falta 'requests' para hablar con Ollama.", ["pip install requests"]) from None
+            raise EngineError(T("Falta 'requests' para hablar con Ollama.", "'requests' is missing to talk to Ollama."), ["pip install requests"]) from None
         self.requests = requests
         self.name = name
         self.host = host.rstrip("/")
@@ -509,14 +511,14 @@ class OllamaEngine:
         try:
             requests.get(f"{self.host}/api/tags", timeout=2).raise_for_status()
         except Exception as e:
-            raise EngineError(f"No se pudo conectar a Ollama en {self.host} ({e.__class__.__name__}).",
-                              ["arranca 'ollama serve' o abre la app de Ollama"]) from None
+            raise EngineError(T(f"No se pudo conectar a Ollama en {self.host} ({e.__class__.__name__}).", f"Could not connect to Ollama at {self.host} ({e.__class__.__name__})."),
+                              [T("arranca 'ollama serve' o abre la app de Ollama", "start 'ollama serve' or open the Ollama app")]) from None
         try:
             info = requests.post(f"{self.host}/api/show", json={"model": name}, timeout=10).json()
         except Exception:
             info = {}
         if "error" in info:
-            raise EngineError(f"Ollama: {info['error']}", ["/models para ver los modelos disponibles"])
+            raise EngineError(f"Ollama: {info['error']}", [T("/models para ver los modelos disponibles", "/models to see the available models")])
         caps = info.get("capabilities") or []
         self.vision = "vision" in caps
         self.can_think = "thinking" in caps
@@ -561,7 +563,7 @@ class OllamaEngine:
         try:
             res = self.requests.post(f"{self.host}/api/chat", json=payload, stream=True, timeout=(5, 600))
             if res.status_code != 200:
-                raise EngineError(f"Ollama respondió {res.status_code}: {res.text[:300]}")
+                raise EngineError(T(f"Ollama respondió {res.status_code}: {res.text[:300]}", f"Ollama answered {res.status_code}: {res.text[:300]}"))
             for line in res.iter_lines():
                 if stop.is_set():
                     st.stopped = True
@@ -591,7 +593,7 @@ class OllamaEngine:
                         st.t_first = max(0.0, (time.time() - t0) - ed)
             yield from parser.flush()
         except self.requests.RequestException as e:
-            raise EngineError(f"Error de red con Ollama: {e}") from None
+            raise EngineError(T(f"Error de red con Ollama: {e}", f"Network error with Ollama: {e}")) from None
         finally:
             st.t_total = time.time() - t0
             st.ctx_used = st.prompt_tokens + st.completion_tokens

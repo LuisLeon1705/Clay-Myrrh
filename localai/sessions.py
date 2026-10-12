@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .config import AUTOSAVE_DIR, SESSIONS_DIR
+from .i18n import T
 
 MAX_AUTOSAVES = 40
 
@@ -27,7 +28,7 @@ class SessionInfo:
 def _safe(name: str) -> str:
     n = re.sub(r"[^\w.-]+", "_", name.strip())[:80].strip("._")
     if not n:
-        raise ValueError("Nombre de sesión vacío o no válido")
+        raise ValueError(T("Nombre de sesión vacío o no válido", "Empty or invalid session name"))
     return n
 
 
@@ -104,29 +105,29 @@ def load(name_or_path: str | Path) -> dict:
     if not p.exists():
         p = SESSIONS_DIR / f"{_safe(str(name_or_path))}.json"
     if not p.exists():
-        raise FileNotFoundError(f"No existe la sesión '{name_or_path}' (/chat list)")
+        raise FileNotFoundError(T(f"No existe la sesión '{name_or_path}' (/chat list)", f"The session '{name_or_path}' does not exist (/chat list)"))
     return json.loads(p.read_text(encoding="utf-8"))
 
 
 def delete(name: str):
     p = SESSIONS_DIR / f"{_safe(name)}.json"
     if not p.exists():
-        raise FileNotFoundError(f"No existe la sesión '{name}'")
+        raise FileNotFoundError(T(f"No existe la sesión '{name}'", f"The session '{name}' does not exist"))
     p.unlink()
 
 
 def export_markdown(path: Path, model: str, system: str, history: list[dict], thoughts: dict[int, str] | None = None):
-    lines = [f"# Conversación con {model}", "", f"_Exportado el {time.strftime('%Y-%m-%d %H:%M')}_", ""]
+    lines = [T(f"# Conversación con {model}", f"# Conversation with {model}"), "", T(f"_Exportado el {time.strftime('%Y-%m-%d %H:%M')}_", f"_Exported on {time.strftime('%Y-%m-%d %H:%M')}_"), ""]
     if system:
-        lines += ["<details><summary>Prompt de sistema</summary>", "", system, "", "</details>", ""]
+        lines += [T("<details><summary>Prompt de sistema</summary>", "<details><summary>System prompt</summary>"), "", system, "", "</details>", ""]
     for i, m in enumerate(history):
         role = m.get("role")
         if role == "system":
             continue
-        title = {"user": "🧑 Usuario", "assistant": "🤖 Asistente"}.get(role, role)
+        title = T({"user": "🧑 Usuario", "assistant": "🤖 Asistente"}, {"user": "🧑 User", "assistant": "🤖 Assistant"}).get(role, role)
         lines += [f"## {title}", ""]
         if m.get("images"):
-            lines += [f"_Imágenes: {', '.join(x.get('name', 'imagen') for x in m['images'])}_", ""]
+            lines += [T(f"_Imágenes: {', '.join(x.get('name', 'imagen') for x in m['images'])}_", f"_Images: {', '.join(x.get('name', 'image') for x in m['images'])}_"), ""]
         if thoughts and i in thoughts:
             lines += ["<details><summary>Razonamiento</summary>", "", thoughts[i], "", "</details>", ""]
         lines += [m.get("content", ""), ""]

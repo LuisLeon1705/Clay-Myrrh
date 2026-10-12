@@ -22,13 +22,28 @@ from rich.table import Table
 from rich.text import Text
 
 from . import hardware as H
-from . import render
+from . import i18n, render
+from .i18n import T
 from .config import APP_DIR, MODELS_DIR, load_settings, save_settings
-from .model_catalog import CATEGORIES, M, TIERS, CatModel, category
+from .model_catalog import CATEGORIES, M, TIERS, CatModel, cat_text, category, note, tier_text
 from .render import console, error, ok, say, warn
 
 PLAN_FILE = APP_DIR / "setup_plan.json"
 HF = "https://huggingface.co"
+
+PRESETS_EN = {
+    "8 GB de RAM, sin GPU (portátil básico)": "8 GB of RAM, no GPU (basic laptop)",
+    "16 GB de RAM, sin GPU": "16 GB of RAM, no GPU",
+    "128 GB memoria unificada (Ryzen AI Max / Mac)": "128 GB unified memory (Ryzen AI Max / Mac)",
+    "256 GB + 2× GPU 48 GB (estación de trabajo)": "256 GB + 2× 48 GB GPU (workstation)",
+    "512 GB+ servidor (mini centro de datos)": "512 GB+ server (mini data centre)",
+}
+
+
+def preset_label(label: str) -> str:
+    """Nombre de un equipo de ejemplo en el idioma de la interfaz."""
+    return PRESETS_EN.get(label, label) if i18n.LANG == "en" else label
+
 
 PRESETS = [
     ("8 GB de RAM, sin GPU (portátil básico)", dict(ram_gb=8, ram_mts=3200, ram_channels=1, vram_gb=0, gpu_bw=0, gpu_name="")),
@@ -85,7 +100,7 @@ def _ask(prompt: str, default=None, cast=str):
     try:
         return cast(raw.replace(",", "."))
     except ValueError:
-        warn("Valor no válido; se mantiene el anterior.")
+        warn(T("Valor no válido; se mantiene el anterior.", "Invalid value; keeping the previous one."))
         return default
 
 
@@ -103,73 +118,75 @@ def show_hardware(hw: H.Hardware):
     tb.add_column(style="dim")
     tb.add_column(style="bold")
     tb.add_column(style="dim")
-    tb.add_row("CPU", hw.cpu_name, f"{hw.cpu_cores} núcleos / {hw.cpu_threads} hilos · {hw.cpu_ghz:.1f} GHz")
+    tb.add_row("CPU", hw.cpu_name, T(f"{hw.cpu_cores} núcleos / {hw.cpu_threads} hilos · {hw.cpu_ghz:.1f} GHz", f"{hw.cpu_cores} cores / {hw.cpu_threads} threads · {hw.cpu_ghz:.1f} GHz"))
     tb.add_row("RAM", f"{hw.ram_gb:.0f} GB {hw.ram_type}-{hw.ram_mts or '?'}",
-               f"{hw.ram_channels} canal(es) → ~{hw.ram_bw:.0f} GB/s")
+               T(f"{hw.ram_channels} canal(es) → ~{hw.ram_bw:.0f} GB/s", f"{hw.ram_channels} channel(s) → ~{hw.ram_bw:.0f} GB/s"))
     if hw.has_gpu:
         tb.add_row("GPU", f"{hw.gpu_name} · {hw.vram_gb:.0f} GB", f"~{hw.gpu_bw:.0f} GB/s")
     else:
-        tb.add_row("GPU", "sin GPU dedicada (o no detectada)", "todo correrá en la CPU")
-    tb.add_row("Disco libre", f"{hw.disk_free_gb:.0f} GB", str(MODELS_DIR))
-    console.print(Panel(tb, title="Tu equipo", title_align="left", border_style="border"))
-    say("[dim]· La velocidad al escribir depende sobre todo del [bold]ancho de banda de memoria[/]: lo que cabe en la "
-        "VRAM va unas 5–10 veces más rápido que en la RAM.[/]")
-    say("[dim]· Los GHz y núcleos de la CPU influyen al [bold]leer[/] textos largos (procesar el prompt) cuando el "
-        "modelo no cabe en la GPU; los MT/s y canales de la RAM, al [bold]escribir[/].[/]")
-    say(f"[dim]· Clase: [/][accent]{H.tier_of(hw)}[/]")
+        tb.add_row("GPU", T("sin GPU dedicada (o no detectada)", "no dedicated GPU (or not detected)"), T("todo correrá en la CPU", "everything will run on the CPU"))
+    tb.add_row(T("Disco libre", "Free disk"), f"{hw.disk_free_gb:.0f} GB", str(MODELS_DIR))
+    console.print(Panel(tb, title=T("Tu equipo", "Your machine"), title_align="left", border_style="border"))
+    say(T("[dim]· La velocidad al escribir depende sobre todo del [bold]ancho de banda de memoria[/]: lo que cabe en la "
+        "VRAM va unas 5–10 veces más rápido que en la RAM.[/]", "[dim]· Writing speed depends mostly on [bold]memory bandwidth[/]: whatever fits in "
+        "VRAM runs about 5–10 times faster than in RAM.[/]"))
+    say(T("[dim]· Los GHz y núcleos de la CPU influyen al [bold]leer[/] textos largos (procesar el prompt) cuando el "
+        "modelo no cabe en la GPU; los MT/s y canales de la RAM, al [bold]escribir[/].[/]", "[dim]· CPU GHz and cores matter when [bold]reading[/] long texts (processing the prompt) when the "
+        "model doesn't fit on the GPU; RAM MT/s and channels, when [bold]writing[/].[/]"))
+    say(T(f"[dim]· Clase: [/][accent]{H.tier_of(hw)}[/]", f"[dim]· Class: [/][accent]{H.tier_of(hw)}[/]"))
 
 
 def edit_hardware(hw: H.Hardware) -> H.Hardware:
     while True:
-        field = _select("¿Qué dato quieres corregir?", [
-            ("ram_gb", f"RAM total: {hw.ram_gb:.0f} GB", ""),
-            ("ram_mts", f"Velocidad RAM: {hw.ram_mts} MT/s", "DDR4 típica 2666–3600 · DDR5 4800–8000"),
-            ("ram_channels", f"Canales de RAM: {hw.ram_channels}", "1 módulo = 1 canal · 2–4 módulos en escritorio = 2"),
-            ("gpu", f"GPU: {hw.gpu_name or 'ninguna'} ({hw.vram_gb:.0f} GB, {hw.gpu_bw:.0f} GB/s)", ""),
-            ("cpu", f"CPU: {hw.cpu_cores} núcleos, {hw.cpu_ghz:.1f} GHz", ""),
-            (None, "✓ Listo", ""),
+        field = _select(T("¿Qué dato quieres corregir?", "Which value do you want to correct?"), [
+            ("ram_gb", T(f"RAM total: {hw.ram_gb:.0f} GB", f"Total RAM: {hw.ram_gb:.0f} GB"), ""),
+            ("ram_mts", T(f"Velocidad RAM: {hw.ram_mts} MT/s", f"RAM speed: {hw.ram_mts} MT/s"), T("DDR4 típica 2666–3600 · DDR5 4800–8000", "typical DDR4 2666–3600 · DDR5 4800–8000")),
+            ("ram_channels", T(f"Canales de RAM: {hw.ram_channels}", f"RAM channels: {hw.ram_channels}"), T("1 módulo = 1 canal · 2–4 módulos en escritorio = 2", "1 stick = 1 channel · 2–4 sticks in a desktop = 2")),
+            ("gpu", T(f"GPU: {hw.gpu_name or 'ninguna'} ({hw.vram_gb:.0f} GB, {hw.gpu_bw:.0f} GB/s)", f"GPU: {hw.gpu_name or 'none'} ({hw.vram_gb:.0f} GB, {hw.gpu_bw:.0f} GB/s)"), ""),
+            ("cpu", T(f"CPU: {hw.cpu_cores} núcleos, {hw.cpu_ghz:.1f} GHz", f"CPU: {hw.cpu_cores} cores, {hw.cpu_ghz:.1f} GHz"), ""),
+            (None, T("✓ Listo", "✓ Done"), ""),
         ], default=5)
         if field is None:
             return hw
         if field == "ram_gb":
-            hw.ram_gb = _ask("RAM total en GB", hw.ram_gb, float)
+            hw.ram_gb = _ask(T("RAM total en GB", "Total RAM in GB"), hw.ram_gb, float)
         elif field == "ram_mts":
-            hw.ram_mts = _ask("MT/s de la RAM", hw.ram_mts, int)
+            hw.ram_mts = _ask(T("MT/s de la RAM", "RAM MT/s"), hw.ram_mts, int)
         elif field == "ram_channels":
-            hw.ram_channels = _ask("Canales", hw.ram_channels, int)
+            hw.ram_channels = _ask(T("Canales", "Channels"), hw.ram_channels, int)
         elif field == "cpu":
-            hw.cpu_cores = _ask("Núcleos", hw.cpu_cores, int)
-            hw.cpu_ghz = _ask("GHz máximos", hw.cpu_ghz, float)
+            hw.cpu_cores = _ask(T("Núcleos", "Cores"), hw.cpu_cores, int)
+            hw.cpu_ghz = _ask(T("GHz máximos", "Max GHz"), hw.cpu_ghz, float)
         elif field == "gpu":
             names = sorted(H.GPU_BANDWIDTH)
-            g = _select("Elige tu GPU", [("none", "Sin GPU", "")] + [("other", "Otra (introducir datos)", "")]
+            g = _select(T("Elige tu GPU", "Choose your GPU"), [("none", T("Sin GPU", "No GPU"), "")] + [("other", T("Otra (introducir datos)", "Other (enter the data)"), "")]
                         + [(n, n.upper(), f"{H.GPU_BANDWIDTH[n]} GB/s") for n in names])
             if g == "none":
                 hw.gpu_name, hw.vram_gb, hw.gpu_bw = "", 0, 0
             elif g == "other":
-                hw.gpu_name = _ask("Nombre de la GPU", hw.gpu_name or "GPU")
-                hw.vram_gb = _ask("VRAM en GB", hw.vram_gb, float)
-                hw.gpu_bw = _ask("Ancho de banda en GB/s (ficha técnica)", hw.gpu_bw or 300, float)
+                hw.gpu_name = _ask(T("Nombre de la GPU", "GPU name"), hw.gpu_name or "GPU")
+                hw.vram_gb = _ask(T("VRAM en GB", "VRAM in GB"), hw.vram_gb, float)
+                hw.gpu_bw = _ask(T("Ancho de banda en GB/s (ficha técnica)", "Bandwidth in GB/s (spec sheet)"), hw.gpu_bw or 300, float)
             elif g:
                 hw.gpu_name = g.upper()
                 hw.gpu_bw = float(H.GPU_BANDWIDTH[g])
-                hw.vram_gb = _ask("VRAM en GB", hw.vram_gb or 8, float)
+                hw.vram_gb = _ask(T("VRAM en GB", "VRAM in GB"), hw.vram_gb or 8, float)
 
 
 def choose_hardware() -> H.Hardware:
-    with console.status("[dim]Leyendo tu hardware…[/]", spinner="dots"):
+    with console.status(T("[dim]Leyendo tu hardware…[/]", "[dim]Reading your hardware…[/]"), spinner="dots"):
         hw = H.detect()
     show_hardware(hw)
-    act = _select("¿Los datos son correctos?", [
-        ("ok", "Sí, usar estos datos", ""),
-        ("edit", "Corregir algún dato", "p. ej. MT/s o canales si no se detectaron bien"),
-        ("sim", "Simular otro equipo", "para orientar a otra persona o planear una compra"),
+    act = _select(T("¿Los datos son correctos?", "Is this data correct?"), [
+        ("ok", T("Sí, usar estos datos", "Yes, use this data"), ""),
+        ("edit", T("Corregir algún dato", "Correct something"), T("p. ej. MT/s o canales si no se detectaron bien", "e.g. MT/s or channels if they weren't detected properly")),
+        ("sim", T("Simular otro equipo", "Simulate another machine"), T("para orientar a otra persona o planear una compra", "to advise someone else or plan a purchase")),
     ])
     if act == "edit":
         hw = edit_hardware(hw)
         show_hardware(hw)
     elif act == "sim":
-        p = _select("Equipo a simular", [(i, lbl, "") for i, (lbl, _) in enumerate(PRESETS)])
+        p = _select(T("Equipo a simular", "Machine to simulate"), [(i, preset_label(lbl), "") for i, (lbl, _) in enumerate(PRESETS)])
         if p is not None:
             base = H.Hardware(cpu_name="(simulado)", cpu_cores=8, cpu_threads=16, cpu_ghz=4.0, ram_type="DDR",
                               disk_free_gb=hw.disk_free_gb)
@@ -204,28 +221,31 @@ def pick_tiers(hw: H.Hardware, cat) -> dict[str, tuple[CatModel, H.Fit] | None]:
 
 def show_category(hw: H.Hardware, cat, tiers) -> list:
     console.print()
-    console.print(Text(cat.name, style="accent"))
-    say(f"[dim]{cat.desc}[/]")
+    cname, cdesc, ccloud = cat_text(cat)
+    console.print(Text(cname, style="accent"))
+    say(f"[dim]{cdesc}[/]")
     tb = Table(border_style="border", padding=(0, 1))
-    for c in ("Nivel", "Modelo", "Tamaño", "Corre en", "Velocidad aprox.", "Estado"):
+    for c in T(("Nivel", "Modelo", "Tamaño", "Corre en", "Velocidad aprox.", "Estado"), ("Level", "Model", "Size", "Runs on", "Approx. speed", "Status")):
         tb.add_column(c)
-    for tkey, (tname, _) in TIERS.items():
+    for tkey in TIERS:
+        tname = tier_text(tkey)[0]
         pick = tiers.get(tkey)
         if pick is None:
-            tb.add_row(tname, "[bad]nada cabe[/]", "", "", "", "")
+            tb.add_row(tname, T("[bad]nada cabe[/]", "[bad]nothing fits[/]"), "", "", "", "")
             continue
         m, f = pick
         inst = installed_path(m)
         size = m.size_gb + (m.mmproj_gb if cat.needs_vision else 0)
-        state = "[ok]instalado ✓[/]" if inst else f"descargar {size:.1f} GB"
-        tb.add_row(tname, f"{m.name}\n[dim]{m.note}[/]", f"{size:.1f} GB",
+        state = T("[ok]instalado ✓[/]" if inst else f"descargar {size:.1f} GB", "[ok]installed ✓[/]" if inst else f"download {size:.1f} GB")
+        tb.add_row(tname, f"{m.name}\n[dim]{note(m)}[/]", f"{size:.1f} GB",
                    f"{f.where}" + (f" ({f.gpu_frac:.0%} GPU)" if f.where == "GPU+RAM" else ""),
                    f"{f.tps_low:.0f}–{f.tps_high:.0f} t/s\n[dim]{H.speed_words(f.tps)}[/]", state)
     console.print(tb)
-    for tkey, (tname, tdesc) in TIERS.items():
+    for tkey in TIERS:
+        tname, tdesc = tier_text(tkey)
         say(f"  [accent]{tname}[/][dim]: {tdesc}[/]")
-    console.print(Panel(Text(cat.cloud), title="¿Local o nube?", title_align="left", border_style="dim"))
-    opts = [(tkey, f"{TIERS[tkey][0]}: {tiers[tkey][0].name}", "") for tkey in TIERS if tiers.get(tkey)]
+    console.print(Panel(Text(ccloud), title=T("¿Local o nube?", "Local or cloud?"), title_align="left", border_style="dim"))
+    opts = [(tkey, f"{tier_text(tkey)[0]}: {tiers[tkey][0].name}", "") for tkey in TIERS if tiers.get(tkey)]
     chosen = {v[0].key for v in tiers.values() if v}
     for k in cat.candidates:          # modelos de esta categoría que ya tienes: sin descargar nada
         m = M[k]
@@ -233,9 +253,9 @@ def show_category(hw: H.Hardware, cat, tiers) -> list:
             continue
         f = evaluate(hw, m, cat.needs_vision)
         if f.fits:
-            opts.append((f"inst:{k}", f"Usar el que ya tienes: {m.name}",
-                         f"{f.tps_low:.0f}–{f.tps_high:.0f} t/s · sin descarga"))
-    return opts + [(None, "Omitir esta categoría", "")]
+            opts.append((f"inst:{k}", T(f"Usar el que ya tienes: {m.name}", f"Use the one you already have: {m.name}"),
+                         T(f"{f.tps_low:.0f}–{f.tps_high:.0f} t/s · sin descarga", f"{f.tps_low:.0f}–{f.tps_high:.0f} t/s · no download")))
+    return opts + [(None, T("Omitir esta categoría", "Skip this category"), "")]
 
 
 # ---------------------------------------------------------------------------
@@ -310,17 +330,17 @@ def download_files(files: list[tuple[str, str, int, Path]]) -> bool:
                                 prog.advance(overall, len(chunk))
                     break
                 except KeyboardInterrupt:
-                    warn(f"Descarga interrumpida; se reanudará con clay-myrrh --download ({part.name})")
+                    warn(T(f"Descarga interrumpida; se reanudará con clay-myrrh --download ({part.name})", f"Download interrupted; it will resume with clay-myrrh --download ({part.name})"))
                     return False
                 except Exception as e:
                     have = part.stat().st_size if part.exists() else 0
                     headers = {"Range": f"bytes={have}-"}
                     if attempt == 2:
-                        error(f"No se pudo descargar {dest.name}: {e}")
+                        error(T(f"No se pudo descargar {dest.name}: {e}", f"Could not download {dest.name}: {e}"))
                         return False
                     time.sleep(3)
             if part.stat().st_size != size:
-                error(f"{dest.name}: tamaño inesperado ({part.stat().st_size} de {size} bytes)")
+                error(T(f"{dest.name}: tamaño inesperado ({part.stat().st_size} de {size} bytes)", f"{dest.name}: unexpected size ({part.stat().st_size} of {size} bytes)"))
                 return False
             part.replace(dest)
             prog.update(task, visible=False)
@@ -360,10 +380,10 @@ def apply_plan(plan: dict):
 def run_download(plan: dict | None = None) -> bool:
     plan = plan or (json.loads(PLAN_FILE.read_text(encoding="utf-8")) if PLAN_FILE.exists() else None)
     if not plan:
-        error("No hay ningún plan de instalación. Ejecuta primero: clay-myrrh --setup")
+        error(T("No hay ningún plan de instalación. Ejecuta primero: clay-myrrh --setup", "There is no installation plan. Run first: clay-myrrh --setup"))
         return False
     todo = []
-    with console.status("[dim]Consultando Hugging Face…[/]", spinner="dots"):
+    with console.status(T("[dim]Consultando Hugging Face…[/]", "[dim]Querying Hugging Face…[/]"), spinner="dots"):
         for ck, mk in plan["choices"].items():
             m = M[mk]
             vision = category(ck).needs_vision or ck == "lectura"
@@ -376,7 +396,7 @@ def run_download(plan: dict | None = None) -> bool:
                         continue          # el modelo ya está: solo falta su mmproj
                     todo.append((m.repo, path, size, dest))
             except Exception as e:
-                error(f"No se pudo consultar {m.repo}: {e}")
+                error(T(f"No se pudo consultar {m.repo}: {e}", f"Could not query {m.repo}: {e}"))
                 return False
     seen, files = set(), []
     for t in todo:
@@ -385,15 +405,16 @@ def run_download(plan: dict | None = None) -> bool:
             files.append(t)
     if files:
         total = sum(f[2] for f in files) / 2 ** 30
-        say(f"[accent]Descargando {len(files)} archivo(s), {total:.1f} GB[/] [dim](puedes cortar con Ctrl+C y "
-            f"reanudar con clay-myrrh --download)[/]")
+        say(T(f"[accent]Descargando {len(files)} archivo(s), {total:.1f} GB[/] [dim](puedes cortar con Ctrl+C y "
+            f"reanudar con clay-myrrh --download)[/]", f"[accent]Downloading {len(files)} file(s), {total:.1f} GB[/] [dim](you can stop with Ctrl+C and "
+            f"resume with clay-myrrh --download)[/]"))
         if not download_files(files):
             return False
     else:
-        say("[dim]Todo lo elegido ya está instalado.[/]")
+        say(T("[dim]Todo lo elegido ya está instalado.[/]", "[dim]Everything you chose is already installed.[/]"))
     s = apply_plan(plan)
-    ok("Configuración aplicada.")
-    say(f"  [dim]Modelo principal:[/] {s.last_model} · [dim]lector visual:[/] {s.vision_model}")
+    ok(T("Configuración aplicada.", "Settings applied."))
+    say(T(f"  [dim]Modelo principal:[/] {s.last_model} · [dim]lector visual:[/] {s.vision_model}", f"  [dim]Main model:[/] {s.last_model} · [dim]visual reader:[/] {s.vision_model}"))
     for ck, p in (s.profiles or {}).items():
         say(f"  [dim]/modo {ck}[/] → {p['model']}")
     return True
@@ -404,27 +425,30 @@ def run_download(plan: dict | None = None) -> bool:
 # ---------------------------------------------------------------------------
 
 def run_wizard() -> bool:
-    render.banner("setup", "[accent]Asistente de instalación[/] [dim]· te recomiendo modelos según tu equipo y para "
-                  "qué los quieres, y dejo todo configurado[/]",
-                  ["Leo tu hardware (puedes corregirlo o simular otro equipo).",
+    render.banner("setup", T("[accent]Asistente de instalación[/] [dim]· te recomiendo modelos según tu equipo y para "
+                  "qué los quieres, y dejo todo configurado[/]", "[accent]Setup assistant[/] [dim]· I recommend models based on your machine and what you "
+                  "want them for, and leave everything configured[/]"),
+                  T(["Leo tu hardware (puedes corregirlo o simular otro equipo).",
                    "Eliges para qué quieres la IA; te explico cada nivel con su velocidad aproximada.",
-                   "Al final descargo lo elegido y ajusto la configuración (perfiles para [accent]/modo[/])."])
+                   "Al final descargo lo elegido y ajusto la configuración (perfiles para [accent]/modo[/])."], ["I read your hardware (you can correct it or simulate another machine).",
+                   "You choose what you want the AI for; I explain each level with its approximate speed.",
+                   "At the end I download what you chose and adjust the settings (profiles for [accent]/mode[/])."]))
     try:
         import llama_cpp  # noqa: F401
     except Exception:
         from rich.markup import escape
         from . import gpu
         summary, steps = gpu.engine_advice(gpu.info().vendor)
-        warn("llama-cpp-python no está instalado: es el motor que ejecuta los modelos. " + summary)
+        warn(T("llama-cpp-python no está instalado: es el motor que ejecuta los modelos. ", "llama-cpp-python is not installed: it's the engine that runs the models. ") + summary)
         for st in steps:
             say(f"  [dim]·[/] {escape(st)}")
     hw = choose_hardware()
     console.print()
-    sel = _multi("¿Para qué quieres usar la IA? (marca con Espacio)",
-                 [(c.key, c.name, c.desc[:70] + ("…" if len(c.desc) > 70 else "")) for c in CATEGORIES],
+    sel = _multi(T("¿Para qué quieres usar la IA? (marca con Espacio)", "What do you want to use the AI for? (tick with Space)"),
+                 [(c.key, cat_text(c)[0], cat_text(c)[1][:70] + ("…" if len(cat_text(c)[1]) > 70 else "")) for c in CATEGORIES],
                  {"utilidad", "programacion", "lectura"})
     if not sel:
-        say("[dim]Cancelado.[/]")
+        say(T("[dim]Cancelado.[/]", "[dim]Cancelled.[/]"))
         return False
     choices: dict[str, str] = {}
     for ck in sel:
@@ -432,23 +456,23 @@ def run_wizard() -> bool:
         tiers = pick_tiers(hw, cat)
         opts = show_category(hw, cat, tiers)
         default = next((i for i, o in enumerate(opts) if o[0] == "moderado"), 0)
-        t = _select(f"{cat.name}: ¿qué nivel?", opts, default)
+        t = _select(T(f"{cat.name}: ¿qué nivel?", f"{cat_text(cat)[0]}: which level?"), opts, default)
         if t and t.startswith("inst:"):
             choices[ck] = t[5:]
         elif t:
             choices[ck] = tiers[t][0].key
     if not choices:
-        say("[dim]No elegiste nada.[/]")
+        say(T("[dim]No elegiste nada.[/]", "[dim]You didn't choose anything.[/]"))
         return False
     usable = [c for c in choices if c != "lectura"]
     primary = None
     if usable:
-        primary = _select("¿Cuál será tu uso principal? (el modelo que se carga al abrir Clay-Myrrh)",
-                          [(c, category(c).name, M[choices[c]].name) for c in usable]) or usable[0]
+        primary = _select(T("¿Cuál será tu uso principal? (el modelo que se carga al abrir Clay-Myrrh)", "What will be your main use? (the model loaded when Clay-Myrrh opens)"),
+                          [(c, cat_text(category(c))[0], M[choices[c]].name) for c in usable]) or usable[0]
     # resumen
     console.print()
-    tb = Table(title="Resumen", title_style="accent", border_style="border")
-    for c in ("Categoría", "Modelo", "Tamaño", "Estado"):
+    tb = Table(title=T("Resumen", "Summary"), title_style="accent", border_style="border")
+    for c in T(("Categoría", "Modelo", "Tamaño", "Estado"), ("Category", "Model", "Size", "Status")):
         tb.add_column(c)
     need = {}
     for ck, mk in choices.items():
@@ -460,28 +484,29 @@ def run_wizard() -> bool:
             need[mk] = max(need.get(mk, 0), size)
         elif vis and not mmproj_installed(m):
             need[mk + ":mmproj"] = m.mmproj_gb
-        state = ("[ok]instalado[/]" if inst and (not vis or mmproj_installed(m)) else
-                 "[mid]falta su mmproj[/]" if inst else "[mid]por descargar[/]")
-        tb.add_row(category(ck).name + (" ★" if ck == primary else ""), m.name, f"{size:.1f} GB", state)
+        state = T(("[ok]instalado[/]" if inst and (not vis or mmproj_installed(m)) else
+                 "[mid]falta su mmproj[/]" if inst else "[mid]por descargar[/]"), ("[ok]installed[/]" if inst and (not vis or mmproj_installed(m)) else
+                 "[mid]its mmproj is missing[/]" if inst else "[mid]to download[/]"))
+        tb.add_row(cat_text(category(ck))[0] + (" ★" if ck == primary else ""), m.name, f"{size:.1f} GB", state)
     console.print(tb)
     total = sum(need.values())
-    say(f"Descarga total: [accent]{total:.1f} GB[/] · disco libre {hw.disk_free_gb:.0f} GB"
-        + (f" · [dim]≈{total * 1024 / 50 / 60:.0f} min a 50 MB/s[/]" if total else ""))
+    say(T(f"Descarga total: [accent]{total:.1f} GB[/] · disco libre {hw.disk_free_gb:.0f} GB", f"Total download: [accent]{total:.1f} GB[/] · free disk {hw.disk_free_gb:.0f} GB")
+        + (T(f" · [dim]≈{total * 1024 / 50 / 60:.0f} min a 50 MB/s[/]", f" · [dim]≈{total * 1024 / 50 / 60:.0f} min at 50 MB/s[/]") if total else ""))
     if total > hw.disk_free_gb * 0.95:
-        warn("No hay espacio suficiente en el disco para todo lo elegido.")
+        warn(T("No hay espacio suficiente en el disco para todo lo elegido.", "There isn't enough disk space for everything you chose."))
     plan = {"created": time.strftime("%Y-%m-%d %H:%M"), "hardware": hw.to_json(), "choices": choices,
             "primary": primary}
     APP_DIR.mkdir(parents=True, exist_ok=True)
     PLAN_FILE.write_text(json.dumps(plan, indent=1, ensure_ascii=False), encoding="utf-8")
-    act = _select("¿Qué hacemos?", [
-        ("now", "Descargar ahora y aplicar la configuración", f"{total:.1f} GB"),
-        ("later", "Solo guardar el plan (descargar luego con: clay-myrrh --download)", ""),
-        ("cancel", "Cancelar", ""),
+    act = _select(T("¿Qué hacemos?", "What do we do?"), [
+        ("now", T("Descargar ahora y aplicar la configuración", "Download now and apply the settings"), f"{total:.1f} GB"),
+        ("later", T("Solo guardar el plan (descargar luego con: clay-myrrh --download)", "Only save the plan (download later with: clay-myrrh --download)"), ""),
+        ("cancel", T("Cancelar", "Cancel"), ""),
     ])
     if act == "now":
         return run_download(plan)
     if act == "later":
-        ok(f"Plan guardado en {PLAN_FILE}. Cuando quieras: clay-myrrh --download")
+        ok(T(f"Plan guardado en {PLAN_FILE}. Cuando quieras: clay-myrrh --download", f"Plan saved in {PLAN_FILE}. Whenever you like: clay-myrrh --download"))
         return True
     return False
 

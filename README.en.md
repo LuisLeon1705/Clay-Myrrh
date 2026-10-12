@@ -18,9 +18,10 @@ assistant recommends the ones that best fit your hardware.
 [live demo of the components](https://luisleon1705.github.io/Clay-Myrrh/demo/). It is published by
 `.github/workflows/pages.yml` from `site/`.
 
-> **Language note:** the interface, the commands and the messages are in **Spanish** (for example
-> `/proyecto`, `/deshacer`, `<leer/>`). This guide explains each one in English. The models themselves can
-> answer in any language you write to them.
+> **Language:** the whole interface (commands, messages and the setup assistant) follows your setting
+> (`/set language en`, `/settings`, `--lang en` or the assistant's ES/EN button; by default, your Windows
+> language). Command names from both languages always work (`/undo` = `/deshacer`). The models answer in
+> whatever language you write to them.
 
 Windows · Python 3.10+ (tested with 3.14).
 
@@ -31,21 +32,21 @@ Windows · Python 3.10+ (tested with 3.14).
   the GPU layers and context size (`/auto`).
 - **Vision through a "reader"**: even if your main model has no vision, a temporary vision model
   transcribes images and scanned PDFs for it. The mmproj file is matched automatically, by metadata.
-- **Files**: whatever the model writes (HTML, code, documents) is saved automatically (`/archivos`,
+- **Files**: whatever the model writes (HTML, code, documents) is saved automatically (`/files`,
   `/open`, `/save`).
-- **Project mode** (`/proyecto <folder>` or `clay-myrrh -d <folder>`): the model works directly on one of
+- **Project mode** (`/project <folder>` or `clay-myrrh -d <folder>`): the model works directly on one of
   your folders, like a Claude Code project. It reads, searches, creates and edits files with small edits
-  (BUSCAR/REEMPLAZAR, i.e. search/replace). Every change keeps a backup: `/deshacer` (undo) reverts it and
-  `/cambios diff` (changes) shows it.
+  (BUSCAR/REEMPLAZAR, i.e. search/replace). Every change keeps a backup: `/undo` (undo) reverts it and
+  `/changes diff` (changes) shows it.
 - **Automatic relay**: if an answer doesn't fit in `/tokens`, the program splits it into parts and chains
   them. Each continuation only gets the goal, the outline and the last lines, never everything written so
   far, and everything is joined at the end.
 - **Prompt-Zero** (`/zero`): builds web pages from a questionnaire, with a token budget and tasks that fit
   in each answer.
-- **Web components** (57, see `/componentes` and `/componentes demo`): the model writes `.lai` tags and the
+- **Web components** (57, see `/components` and `/components demo`): the model writes `.lai` tags and the
   program generates a tested `index.html`, CSS and JS. It uses about 4 times fewer tokens than writing the
   page from scratch. They kick in automatically when you ask for a page or template in the chat, and also
-  with `/plantilla <description>`.
+  with `/template <description>`.
 - **Visual setup assistant**: analyses your hardware, recommends models by use and level, and downloads
   them with resume support. Before installing it shows a **step-by-step guide** (short steps that advance
   on their own) comparing Claude, Gemini, Codex and local AI. It also has a **Comparison** tab (prices,
@@ -85,7 +86,7 @@ clay-myrrh -m Qwen3.6 --ctx 32k            # model and context for this session
 clay-myrrh -m Qwen3.6 "explain this error" -f log.txt   # one-shot question
 clay-myrrh --mem -m Qwen3.6                # how much VRAM/RAM it needs, without loading it
 clay-myrrh -d C:\projects\my-site          # open a folder as a project
-clay-myrrh --grafo C:\projects\my-site     # create its Clay-Myrrh.md with the map and warnings (no model)
+clay-myrrh --graph C:\projects\my-site     # create its Clay-Myrrh.md with the map and warnings (no model)
 clay-myrrh --setup                         # setup assistant
 ```
 Command-line options only apply to that session. To change something permanently, use `/settings`.
@@ -100,16 +101,16 @@ Command-line options only apply to that session. To change something permanently
 | `/think on\|off\|show\|hide\|last` | reasoning |
 | `/file`, `/image`, `/pdf`, `@path` | attach files |
 | `/vision` | visual reader: mode, model, last transcription |
-| `/archivos`, `/open`, `/save`, `/copy`, `/export` | created files and answers |
-| `/proyecto [path\|cerrar\|recargar]` | work on a folder (the model edits its files) |
-| `/grafo [ver\|avisos]` | project map in `Clay-Myrrh.md`: connections and warnings with few tokens |
-| `/cambios [diff]`, `/deshacer` | see and undo what the model changed in the project |
-| `/cadena <file \| prompts>` | chain several prompts separated by `---` (see below) |
-| `/plantilla <description>` | page or template with components (generated HTML, CSS and JS) |
-| `/zero`, `/componentes [chat auto\|on\|off]` | guided websites and component catalogue |
+| `/files`, `/open`, `/save`, `/copy`, `/export` | created files and answers |
+| `/project [path\|close\|reload]` | work on a folder (the model edits its files) |
+| `/graph [show\|warnings]` | project map in `Clay-Myrrh.md`: connections and warnings with few tokens |
+| `/changes [diff]`, `/undo` | see and undo what the model changed in the project |
+| `/chain <file \| prompts>` | chain several prompts separated by `---` (see below) |
+| `/template <description>` | page or template with components (generated HTML, CSS and JS) |
+| `/zero`, `/components [chat auto\|on\|off]` | guided websites and component catalogue |
 | `/resume`, `/chat`, `/compact`, `/clear` | sessions and context |
 | `/memory`, `/system` | persistent instructions and system prompt |
-| `/settings`, `/modo`, `/theme` | settings, usage profiles, colours |
+| `/settings`, `/mode`, `/theme` | settings, usage profiles, colours |
 | `/stats`, `/doctor`, `/debug` | metrics and diagnostics |
 
 Shortcuts: **Shift+Enter** new line · **Esc** cancel · **t** show the reasoning live · **?** list of
@@ -127,7 +128,7 @@ Each chain is logged in `~/.local_ai/relevos/`.
 
 ### Project mode
 ```text
-/proyecto C:\projects\my-shop
+/project C:\projects\my-shop
 > change the title to "Aurora Shop" and make the buy button show an alert
 ```
 - **Context:** the model gets the project map (see below) or the folder structure, without
@@ -147,10 +148,10 @@ Each chain is logged in `~/.local_ai/relevos/`.
   - Rewriting a file with "… rest unchanged" is rejected.
   - A truncated block never overwrites an existing file.
   - Backups are kept in `~/.local_ai/respaldos/`.
-- **Project instructions:** `Clay-Myrrh.md` in the folder (`/grafo` creates it, or `/memory edit
-  proyecto`). The older `LOCAL_AI.md` is still read.
+- **Project instructions:** `Clay-Myrrh.md` in the folder (`/graph` creates it, or `/memory edit
+  project`). The older `LOCAL_AI.md` is still read.
 
-### Project map (`/grafo`)
+### Project map (`/graph`)
 In the style of Graphify: a compact map of the project so the model knows what is there and how it fits
 together **without reading everything**. The program builds it by reading the code (no model, in under a
 second):
@@ -167,8 +168,8 @@ second):
 
 | Command | What it does |
 |---|---|
-| `/grafo` | creates or updates the map inside `Clay-Myrrh.md` (your instructions are kept) |
-| `/grafo ver` · `/grafo avisos` | shows the map or only the warnings |
+| `/graph` | creates or updates the map inside `Clay-Myrrh.md` (your instructions are kept) |
+| `/graph show` · `/graph warnings` | shows the map or only the warnings |
 | `/set project_context grafo\|archivos` | what the model gets in a project (`grafo` by default) |
 
 With `project_context grafo`, the model gets the map when the project opens. With each message it only
@@ -180,23 +181,23 @@ cheaper. With `archivos` you get the previous behaviour: every small new or chan
 For long tasks done in steps (when you don't want to wait in front of the screen):
 
 ```text
-/cadena my-steps.txt
+/chain my-steps.txt
 ```
 
 - **Format:** the file has the prompts separated by a `---` line. You can also type or paste them after
-  `/cadena`, using Shift+Enter for line breaks.
+  `/chain`, using Shift+Enter for line breaks.
 - **Commands:** the first lines of a step that start with `/` run as commands (for example
   `/tokens 8000`).
 - **When it stops:** each step is sent when the previous one finishes, with the same history and the same
   project. If a step fails or you press Esc, the chain stops and tells you how to resume
-  (`/cadena my-steps.txt desde 3`).
+  (`/chain my-steps.txt from 3`).
 - **Report:** when it finishes, a report is saved in `~/.local_ai/cadenas/` with each prompt, its answer
   and how long it took.
-- **From the terminal:** `clay-myrrh -d folder --cadena steps.txt [--desde N] [--salir] -y`. With
-  `--salir` it exits at the end; without it, it stays in the chat.
+- **From the terminal:** `clay-myrrh -d folder --chain steps.txt [--from N] [--exit] -y`. With
+  `--exit` it exits at the end; without it, it stays in the chat.
 
 ### Components for templates
-`/plantilla landing page for a barbershop with services, team, bookings and map` makes the model write
+`/template landing page for a barbershop with services, team, bookings and map` makes the model write
 only `pagina.lai` and the program generates the site. Besides the classics (navbar, hero, cards, pricing,
 faq, gallery, products + cart, table, gantt, crud…) there are:
 
@@ -208,10 +209,10 @@ faq, gallery, products + cart, table, gantt, crud…) there are:
 | Forms | `form`, `wizard` (multi-step), `login` (simulated), `quiz`, `poll`, `calculator` (custom formula), `chatbot` (FAQ) |
 | Data and apps | `chart` (bar, line, pie, donut), `kanban`, `todo`, `calendar`, `expenses` |
 
-- **In the chat**, components switch on automatically when you ask for a page (`/componentes chat auto`).
+- **In the chat**, components switch on automatically when you ask for a page (`/components chat auto`).
   Only the basic ones, the ones that match your request and the ones the page already uses are documented
   in full; for the rest, only the name is sent. That is ≈2,500 tokens instead of ≈5,000.
-- **`/componentes demo`** opens an example page with 36 components. Its `pagina.lai` works as a cheat
+- **`/components demo`** opens an example page with 36 components. Its `pagina.lai` works as a cheat
   sheet.
 - **`/zero`** has 12 website types (restaurant, appointment-based business, event, course, NGO,
   productivity app…). It also offers optional extras (WhatsApp, chat, cookies, terms, quote) and a
@@ -228,7 +229,7 @@ All state lives in `~/.local_ai/` (outside this repository):
 | `proyectos/` | `/zero` projects |
 | `transcripciones/` | visual reader cache |
 | `relevos/` | relay logs |
-| `cadenas/` | `/cadena` reports |
+| `cadenas/` | `/chain` reports |
 | `respaldos/<session>/` | copies of project files before each change by the model |
 | `crash.log` | unhandled errors |
 

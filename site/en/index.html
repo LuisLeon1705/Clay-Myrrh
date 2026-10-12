@@ -42,27 +42,27 @@
     </div>
     <div class="pills">
       <span class="pill">llama.cpp · Ollama</span><span class="pill">GGUF models</span>
-      <span class="pill">NVIDIA · AMD · Intel</span><span class="pill">Spanish interface</span>
+      <span class="pill">NVIDIA · AMD · Intel</span><span class="pill">English &amp; Spanish</span>
     </div>
 
     <div class="term" aria-label="Example terminal session">
       <div class="bar"><i></i><i></i><i></i></div>
 <pre><span class="logo-txt">█▀▀ █   ▄▀█ █▄█ ▄▄ █▀▄▀█ █▄█ █▀█ █▀█ █ █
 █▄▄ █▄▄ █▀█  █     █ ▀ █  █  █▀▄ █▀▄ █▀█</span>
-<span class="dim">tu IA, en casa · v4.0</span>
+<span class="dim">tu IA, en casa · v4.1.0</span>
 
-<span class="u">›</span> /proyecto C:\projects\tablon
+<span class="u">›</span> /project C:\projects\tablon
 <span class="ok">✓</span> Proyecto abierto  tablon <span class="dim">· 17 archivos · red ≈1.100 tokens (leerlo todo: ≈9.500)</span>
   <span class="w">1 aviso:</span> views/index.ejs: formulario POST /comentarios → no hay ninguna ruta
   <span class="dim">(¿falta montar src/routes/comments.js con el prefijo /comentarios?)</span>
 
 <span class="u">›</span> fix the warning
 <span class="ok">✓</span> Editar  src/server.js <span class="dim">· 1 de 1 cambio aplicado</span>
-<span class="ok">✓</span> Cambios en el proyecto <span class="dim">· /deshacer los revierte · /cambios diff los muestra</span>
+<span class="ok">✓</span> Cambios en el proyecto <span class="dim">· /undo los revierte · /changes diff los muestra</span>
 <span class="dim">⏱ 41 s · 412 tok · 10,1 t/s</span></pre>
     </div>
-    <p class="lead" style="margin: 14px auto 0; font-size: 14px;">The interface is in Spanish; you can talk to the
-      model in English or any language it knows.</p>
+    <p class="lead" style="margin: 14px auto 0; font-size: 14px;">The interface is in English or Spanish, as you
+      prefer (the example above is in Spanish). Talk to the model in any language it knows.</p>
   </div>
 
   <section id="features">
@@ -75,9 +75,9 @@
           <p>Works offline. Your files, photos and conversations never leave your computer.</p></div>
         <div class="card"><div class="ico">🗂️</div><h3>Project mode</h3>
           <p>The model reads, searches, creates and edits the files in a folder with small edits. Every change keeps
-            a backup and can be undone with <code>/deshacer</code>.</p></div>
+            a backup and can be undone with <code>/undo</code>.</p></div>
         <div class="card"><div class="ico">🕸️</div><h3>Project map</h3>
-          <p><code>/grafo</code> maps your code without using the model: what each file uses, its routes, views and
+          <p><code>/graph</code> maps your code without using the model: what each file uses, its routes, views and
             tables. It also warns you about pieces that don't fit.</p></div>
         <div class="card"><div class="ico">👁️</div><h3>Images and PDFs</h3>
           <p>Reads photos, screenshots and PDFs, scanned ones included. A vision model acts as a "reader" for any
@@ -86,7 +86,7 @@
           <p>Long answers continue on their own without re-reading what was already written, and the parts are
             joined at the end.</p></div>
         <div class="card"><div class="ico">⛓️</div><h3>Prompt chains</h3>
-          <p>Chain steps with <code>/cadena</code> and leave it working. When it finishes, you get a report of every
+          <p>Chain steps with <code>/chain</code> and leave it working. When it finishes, you get a report of every
             step.</p></div>
         <div class="card"><div class="ico">🧩</div><h3>57 web components</h3>
           <p>Full pages with very few tokens: the model writes tags and the program generates tested HTML, CSS and
@@ -148,7 +148,7 @@ Comandos: npm start · docker compose up
           <p>Open the <strong>Clay-Myrrh</strong> shortcut or, from a terminal:</p>
 <pre class="cmd">clay-myrrh                              # chat
 clay-myrrh -d C:\projects\my-site       # work on a folder
-clay-myrrh --grafo C:\projects\my-site  # project map in Clay-Myrrh.md</pre></div></li>
+clay-myrrh --graph C:\projects\my-site  # project map in Clay-Myrrh.md</pre></div></li>
       </ol>
     </div>
   </section>
@@ -157,15 +157,15 @@ clay-myrrh --grafo C:\projects\my-site  # project map in Clay-Myrrh.md</pre></di
     <div class="wrap">
       <h2>Main commands</h2>
       <p class="lead">Type <code>/</code> in the chat to see the full menu, with descriptions and autocomplete.
-        Commands keep their Spanish names.</p>
+        Commands follow your language setting (<code>/set language en</code>); the Spanish names work too.</p>
       <div class="scroll">
         <table class="table">
           <tr><th>Command</th><th>What it does</th></tr>
           <tr><td><code>/model</code></td><td>choose a model, with its size, whether it has vision and the memory it needs</td></tr>
-          <tr><td><code>/proyecto &lt;folder&gt;</code></td><td>work on a folder: the model edits its files</td></tr>
-          <tr><td><code>/grafo [ver|avisos]</code></td><td>project map and automatic checks</td></tr>
-          <tr><td><code>/cambios</code> · <code>/deshacer</code></td><td>see and undo what the model changed</td></tr>
-          <tr><td><code>/cadena &lt;file&gt;</code></td><td>run several prompts in a row, with a report</td></tr>
+          <tr><td><code>/project &lt;folder&gt;</code></td><td>work on a folder: the model edits its files</td></tr>
+          <tr><td><code>/graph [show|warnings]</code></td><td>project map and automatic checks</td></tr>
+          <tr><td><code>/changes</code> · <code>/undo</code></td><td>see and undo what the model changed</td></tr>
+          <tr><td><code>/chain &lt;file&gt;</code></td><td>run several prompts in a row, with a report</td></tr>
           <tr><td><code>/zero</code></td><td>build a website from scratch with a questionnaire and guided tasks</td></tr>
           <tr><td><code>/compact</code></td><td>summarise the conversation to free up context</td></tr>
           <tr><td><code>/mem</code> · <code>/doctor</code></td><td>estimate VRAM and RAM before loading, and diagnose the installation</td></tr>

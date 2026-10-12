@@ -22,6 +22,7 @@ import time
 from dataclasses import dataclass, field
 
 from .gguf import GGUFInfo
+from .i18n import T
 
 MiB = 1024 * 1024
 GiB = 1024 * MiB
@@ -163,13 +164,13 @@ def arch_params(info: GGUFInfo) -> ArchParams:
     if not n_swa:
         is_swa = [False] * n
     if any(is_swa):
-        notes.append(f"SWA: {sum(is_swa)}/{n} capas con ventana de {n_swa} tokens")
+        notes.append(T(f"SWA: {sum(is_swa)}/{n} capas con ventana de {n_swa} tokens", f"SWA: {sum(is_swa)}/{n} layers with a {n_swa}-token window"))
 
     # --- capas recurrentes (híbridos tipo Qwen3.5/Qwen3-Next) -------------------
     interval = int(info.get("full_attention_interval") or 0)
     if interval > 0:
         is_rec = [(i + 1) % interval != 0 for i in range(n)]
-        notes.append(f"híbrido: {n - sum(is_rec)}/{n} capas de atención (KV), resto recurrentes")
+        notes.append(T(f"híbrido: {n - sum(is_rec)}/{n} capas de atención (KV), resto recurrentes", f"hybrid: {n - sum(is_rec)}/{n} attention (KV) layers, the rest recurrent"))
     else:
         is_rec = [False] * n
 
@@ -183,7 +184,7 @@ def arch_params(info: GGUFInfo) -> ArchParams:
     if shared:
         for i in range(max(0, n - shared), n):
             has_kv[i] = False
-        notes.append(f"KV compartida: las últimas {shared} capas reutilizan caché")
+        notes.append(T(f"KV compartida: las últimas {shared} capas reutilizan caché", f"shared KV: the last {shared} layers reuse the cache"))
 
     k_len = [k_swa if is_swa[i] else k_full for i in range(n)]
     v_len = [v_swa if is_swa[i] else v_full for i in range(n)]
@@ -302,9 +303,9 @@ def estimate(info: GGUFInfo, n_ctx: int, ngl: int, kv_type: str = "f16", swa_ful
             else:
                 est.rs_cpu += b
     if any(ap.is_swa) and not swa_full:
-        est.notes.append(f"caché SWA mínima ({swa_cells} celdas en capas SWA)")
+        est.notes.append(T(f"caché SWA mínima ({swa_cells} celdas en capas SWA)", f"minimal SWA cache ({swa_cells} cells in SWA layers)"))
     if kv_type != "f16":
-        est.notes.append(f"caché KV cuantizada {kv_type} (requiere flash-attn)")
+        est.notes.append(T(f"caché KV cuantizada {kv_type} (requiere flash-attn)", f"quantised KV cache {kv_type} (requires flash-attn)"))
 
     # --- buffers de cómputo -----------------------------------------------------
     # medido: el buffer de cómputo ≈ logits del ubatch + unas decenas de MiB
@@ -406,23 +407,23 @@ def suggestions(info: GGUFInfo, vram_budget: int, ram_budget: int, n_ctx: int, n
     best_g = next((g for g in range(min(ngl, nmax), -1, -1)
                    if estimate(info, n_ctx, g, **kw).vram <= vram_budget), None)
     if best_g is not None and best_g < ngl:
-        out.append(f"/gpu {best_g}  → cabe con ctx={n_ctx} (más lento: {nmax - best_g} capas en CPU)")
+        out.append(T(f"/gpu {best_g}  → cabe con ctx={n_ctx} (más lento: {nmax - best_g} capas en CPU)", f"/gpu {best_g}  → fits with ctx={n_ctx} (slower: {nmax - best_g} layers on the CPU)"))
     ctx_ok = None
     for c in sorted({c for c in CTX_STEPS if c < n_ctx} | {2048}, reverse=True):
         if estimate(info, c, ngl, **kw).vram <= vram_budget:
             ctx_ok = c
             break
     if ctx_ok:
-        out.append(f"/ctx {ctx_ok}  → cabe con las {min(ngl, nmax)} capas en GPU")
+        out.append(T(f"/ctx {ctx_ok}  → cabe con las {min(ngl, nmax)} capas en GPU", f"/ctx {ctx_ok}  → fits with the {min(ngl, nmax)} layers on the GPU"))
     if kw.get("kv_type", "f16") == "f16":
         e8 = estimate(info, n_ctx, ngl, **{**kw, "kv_type": "q8_0"})
         if e8.vram <= vram_budget:
-            out.append("/kv q8_0  → caché KV a la mitad, cabe sin tocar ctx ni capas")
+            out.append(T("/kv q8_0  → caché KV a la mitad, cabe sin tocar ctx ni capas", "/kv q8_0  → half-size KV cache, fits without changing ctx or layers"))
     if not out:
-        out.append("/gpu auto  → elegir capas y contexto automáticamente")
+        out.append(T("/gpu auto  → elegir capas y contexto automáticamente", "/gpu auto  → pick layers and context automatically"))
     est_ram = estimate(info, n_ctx, ngl, **kw).ram
     if est_ram > ram_budget:
-        out.append("RAM justa: cierra programas o baja /ctx; con mmap Windows paginará al disco (muy lento)")
+        out.append(T("RAM justa: cierra programas o baja /ctx; con mmap Windows paginará al disco (muy lento)", "Tight on RAM: close programs or lower /ctx; with mmap Windows will page to disk (very slow)"))
     return out
 
 

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import APP_DIR
+from .i18n import T
 
 _SCALAR = {0: "B", 1: "b", 2: "H", 3: "h", 4: "I", 5: "i", 6: "f", 7: "?", 10: "Q", 11: "q", 12: "d"}
 _MAX_ARRAY_KEPT = 1024
@@ -165,10 +166,10 @@ def _parse(path: Path) -> GGUFInfo:
     with open(path, "rb") as f:
         r = _Reader(f)
         if f.read(4) != b"GGUF":
-            raise GGUFError(f"{path.name} no es un archivo GGUF")
+            raise GGUFError(T(f"{path.name} no es un archivo GGUF", f"{path.name} is not a GGUF file"))
         version = r.u32()
         if version < 2:
-            raise GGUFError(f"Versión GGUF {version} no soportada")
+            raise GGUFError(T(f"Versión GGUF {version} no soportada", f"GGUF version {version} not supported"))
         n_tensors = r.u64()
         n_kv = r.u64()
         meta: dict[str, Any] = {"__gguf_version__": version}

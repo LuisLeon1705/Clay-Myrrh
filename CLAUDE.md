@@ -56,6 +56,7 @@ localai/
   webkit/              57 componentes web (.lai → index.html + css + js); assets/core.js lleva todo el JS,
                        assets/demo.lai es el escaparate; parser.py corrige errores típicos de modelos pequeños
   render.py            temas, banner, StreamView (streaming con markdown)
+  i18n.py              idioma de los comandos (es/en): NAMES (clave → /nombre-es, /nombre-en), alias y subcomandos
   inputbox.py          caja de entrada (prompt_toolkit), selectores, barra inferior
   sessions.py, doctor.py, llamalog.py
 models/                llm/ · vision/ · mmproj/ · diffusion/ (los .gguf NO van al repositorio)
@@ -69,8 +70,11 @@ global) y crash.log.
 
 ## Reglas
 - **Nunca descargues modelos ni mmproj sin preguntar al usuario.** Recomiéndalos y espera su sí.
-- Textos visibles, mensajes de error y comentarios en **español**. Los errores deben decir qué hacer
-  (`EngineError(msg, hints)`).
+- **Interfaz bilingüe (es/en)**: todo texto visible va con `T("español", "inglés")` (`from .i18n import T`),
+  incluidas las pistas de `EngineError(msg, hints)`; los errores deben decir qué hacer. `T` admite un solo
+  literal por idioma: no envuelvas varios argumentos ni `clave=valor` (`title=T(…)`, no `T(title=…)`).
+  Comentarios, docstrings y lo que se envía al modelo (instrucciones del modo proyecto, relevo, componentes)
+  siguen en español. En el asistente web: `data-en` en el HTML y `t(es, en)` en JavaScript.
 - La UI usa **rich** (salida) y **prompt_toolkit** (entrada). Mantén el estilo de `render.tool(...)`,
   `say/warn/error` y StreamView.
 - Las opciones de línea de comandos son **transitorias**: no se guardan en config.json
@@ -82,6 +86,12 @@ global) y crash.log.
   caracteres de control, bytes nulos). Después de un parche, comprueba con `ast.parse`.
 - **README.md (español) y README.en.md (inglés) van a la par**, igual que `site/index.html` y
   `site/en/index.html`: si cambias uno, cambia el otro. La interfaz del programa es solo en español.
+- **Comandos en dos idiomas** (`Settings.language` = auto | es | en): un comando nuevo necesita su entrada en
+  `i18n.NAMES` (clave = método `cmd_<clave>`), descripción y argumentos en los dos idiomas en
+  `App._build_commands` (`C(clave, es, en, args_es, args_en)`) y su clave en `HELP_GROUPS`. Los métodos
+  reciben siempre los subcomandos en español: los ingleses se traducen en `i18n.normalize_arg`. Los dos
+  juegos de nombres funcionan siempre. El idioma también rige los mensajes (`i18n.LANG`, `T`), el prompt de
+  sistema por defecto (`DEFAULT_SYSTEM_PROMPT_EN`) y el asistente web (`/?lang=en`, botón ES/EN).
 - Respeta el estilo del código: módulos pequeños, funciones con docstring breve en español y sin
   dependencias nuevas salvo que sea necesario.
 

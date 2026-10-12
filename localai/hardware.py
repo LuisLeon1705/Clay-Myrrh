@@ -18,6 +18,8 @@ import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
 
+from .i18n import T
+
 GPU_BANDWIDTH = {  # GB/s (memoria de vídeo)
     "gtx 1650": 128, "gtx 1660": 192, "rtx 2060": 336, "rtx 2070": 448, "rtx 2080 ti": 616, "rtx 2080": 448,
     "rtx 3050": 224, "rtx 3060 ti": 448, "rtx 3060": 360, "rtx 3070 ti": 608, "rtx 3070": 448,
@@ -73,9 +75,10 @@ class Hardware:
         return asdict(self)
 
     def summary(self) -> str:
-        g = f"{self.gpu_name} {self.vram_gb:.0f} GB (~{self.gpu_bw:.0f} GB/s)" if self.has_gpu else "sin GPU dedicada"
-        return (f"{self.ram_gb:.0f} GB {self.ram_type}-{self.ram_mts or '?'} ×{self.ram_channels} canales "
-                f"(~{self.ram_bw:.0f} GB/s) · {g} · CPU {self.cpu_cores} núcleos {self.cpu_ghz:.1f} GHz")
+        g = f"{self.gpu_name} {self.vram_gb:.0f} GB (~{self.gpu_bw:.0f} GB/s)" if self.has_gpu else T("sin GPU dedicada", "no dedicated GPU")
+        return T((f"{self.ram_gb:.0f} GB {self.ram_type}-{self.ram_mts or '?'} ×{self.ram_channels} canales "
+                f"(~{self.ram_bw:.0f} GB/s) · {g} · CPU {self.cpu_cores} núcleos {self.cpu_ghz:.1f} GHz"), (f"{self.ram_gb:.0f} GB {self.ram_type}-{self.ram_mts or '?'} ×{self.ram_channels} channels "
+                f"(~{self.ram_bw:.0f} GB/s) · {g} · CPU {self.cpu_cores} cores {self.cpu_ghz:.1f} GHz"))
 
 
 def _ps(cmd: str) -> str:
@@ -199,28 +202,28 @@ def estimate(hw: Hardware, size_gb: float, params_b: float, active_b: float | No
 
 def speed_words(tps: float) -> str:
     if tps >= 40:
-        return "instantáneo"
+        return T("instantáneo", "instant")
     if tps >= 20:
-        return "fluido"
+        return T("fluido", "smooth")
     if tps >= 8:
-        return "cómodo (más rápido que leer)"
+        return T("cómodo (más rápido que leer)", "comfortable (faster than reading)")
     if tps >= 3:
-        return "lento (como leer en voz alta)"
+        return T("lento (como leer en voz alta)", "slow (like reading aloud)")
     if tps >= 1:
-        return "muy lento (para tareas que dejas trabajando)"
-    return "impracticable"
+        return T("muy lento (para tareas que dejas trabajando)", "very slow (for tasks you leave running)")
+    return T("impracticable", "impractical")
 
 
 def tier_of(hw: Hardware) -> str:
     total = hw.vram_usable + hw.ram_usable
     if total < 10:
-        return "equipo ligero (modelos pequeños, sobre todo utilidades)"
+        return T("equipo ligero (modelos pequeños, sobre todo utilidades)", "light machine (small models, mostly utilities)")
     if total < 28:
-        return "equipo medio (modelos de 4–12B fluidos; MoE de ~30B usables)"
+        return T("equipo medio (modelos de 4–12B fluidos; MoE de ~30B usables)", "mid-range machine (4–12B models run smoothly; ~30B MoE usable)")
     if total < 64:
-        return "equipo potente (MoE de 30–35B fluidos; densos de 27–32B usables)"
+        return T("equipo potente (MoE de 30–35B fluidos; densos de 27–32B usables)", "powerful machine (30–35B MoE run smoothly; 27–32B dense usable)")
     if total < 160:
-        return "estación de trabajo (MoE de 80–120B)"
+        return T("estación de trabajo (MoE de 80–120B)", "workstation (80–120B MoE)")
     if total < 400:
-        return "servidor (MoE de 200–400B)"
-    return "mini centro de datos (modelos de frontera abiertos, 400B+)"
+        return T("servidor (MoE de 200–400B)", "server (200–400B MoE)")
+    return T("mini centro de datos (modelos de frontera abiertos, 400B+)", "mini data centre (open frontier models, 400B+)")

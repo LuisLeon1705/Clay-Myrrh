@@ -28,6 +28,9 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import i18n
+from .i18n import T
+
 MARK_START = "<!-- red:inicio · generada por Clay-Myrrh con /grafo; se actualiza sola, no la edites a mano -->"
 MARK_END = "<!-- red:fin -->"
 _SECTION = re.compile(r"\n*<!-- red:inicio\b.*?<!-- red:fin -->\n?", re.S)
@@ -127,21 +130,21 @@ class Red:
 
     def text(self) -> str:
         """Bloque Markdown de la red (con sus marcas), listo para Clay-Myrrh.md o el prompt."""
-        lines = [MARK_START, "## Red del proyecto"]
+        lines = [MARK_START, T("## Red del proyecto", "## Project map")]
         if self.stack:
             lines.append("Stack: " + " · ".join(self.stack))
         if self.commands:
-            lines.append("Comandos: " + " · ".join(self.commands))
+            lines.append(T("Comandos: ", "Commands: ") + " · ".join(self.commands))
         nl = self.node_lines()
         others = sorted(r for r, n in self.nodes.items() if r not in nl)
-        lines.append(f"Archivos ({len(self.nodes)}) · formato: ruta [tipo líneas] hechos · «→» = usa")
+        lines.append(T(f"Archivos ({len(self.nodes)}) · formato: ruta [tipo líneas] hechos · «→» = usa", f"Files ({len(self.nodes)}) · format: path [type lines] facts · «→» = uses"))
         lines += [f"- {l}" for l in nl.values()]
         if others:
-            lines.append("- otros: " + _cut(others, 30))
-        lines.append("### Avisos (comprobaciones automáticas: piezas que no encajan)")
-        lines += [f"- {a}" for a in self.avisos[:MAX_AVISOS]] or ["- ninguno"]
+            lines.append(T("- otros: ", "- others: ") + _cut(others, 30))
+        lines.append(T("### Avisos (comprobaciones automáticas: piezas que no encajan)", "### Warnings (automatic checks: pieces that don't fit)"))
+        lines += [f"- {a}" for a in self.avisos[:MAX_AVISOS]] or T(["- ninguno"], ["- none"])
         if len(self.avisos) > MAX_AVISOS:
-            lines.append(f"- … y {len(self.avisos) - MAX_AVISOS} más (/grafo avisos)")
+            lines.append(T(f"- … y {len(self.avisos) - MAX_AVISOS} más (/grafo avisos)", f"- … and {len(self.avisos) - MAX_AVISOS} more (/graph warnings)"))
         lines.append(MARK_END)
         return "\n".join(lines)
 
@@ -166,12 +169,24 @@ def _cut(items, n: int = MAX_ITEMS) -> str:
     return ", ".join(items[:n]) + (f" +{len(items) - n}" if len(items) > n else "")
 
 
+# etiquetas de la red en inglés (las claves internas siguen en español)
+LABELS_EN = {"npm": "npm", "exporta": "exports", "funciones": "functions", "rutas": "routes", "monta": "mounts",
+             "vistas": "views", "env": "env", "tablas": "tables", "incluye": "includes", "formularios": "forms",
+             "enlaza": "links", "variables": "variables", "servicios": "services", "base": "base", "copia": "copies",
+             "expone": "exposes", "arranca": "runs", "dependencias": "dependencies", "scripts": "scripts",
+             "main": "main", "secciones": "sections", "variables CSS": "CSS variables", "modo": "mode",
+             "@media": "@media", "componentes": "components", "paquetes": "packages", "clases": "classes",
+             "índices": "indexes", "error de sintaxis": "syntax error", "no analizado": "not analysed"}
+HOW_EN = {"formulario": "form", "fetch": "fetch", "redirección": "redirect", "enlace": "link"}
+
+
 def _node_line(n: Node) -> str:
     parts = [f"{n.rel} [{n.kind} {n.lines}]"]
     for k, v in n.facts.items():
         if not v:
             continue
-        parts.append(f"→ {_cut(v)}" if k == "usa" else f"{k}: {_cut(v)}")
+        label = LABELS_EN.get(k, k) if i18n.LANG == "en" else k
+        parts.append(f"→ {_cut(v)}" if k == "usa" else f"{label}: {_cut(v)}")
     return " · ".join(parts)
 
 
@@ -495,7 +510,7 @@ def _parse_py(red: Red, rel: str, text: str, fileset: set[str]):
         tree = ast.parse(text)
     except SyntaxError as e:
         node.add("error de sintaxis", f"línea {e.lineno}")
-        red.avisos.append(f"{rel}: error de sintaxis en la línea {e.lineno} ({e.msg})")
+        red.avisos.append(T(f"{rel}: error de sintaxis en la línea {e.lineno} ({e.msg})", f"{rel}: syntax error at line {e.lineno} ({e.msg})"))
         return
     base = posixpath.dirname(rel)
     pkgs = []
@@ -538,7 +553,7 @@ def _parse_py(red: Red, rel: str, text: str, fileset: set[str]):
             if found or r:
                 node.add("usa", *(found or [r]))
             elif n.level:
-                red.avisos.append(f"{rel}: importa «{'.' * n.level}{n.module or ''}», que no existe en el proyecto")
+                red.avisos.append(T(f"{rel}: importa «{'.' * n.level}{n.module or ''}», que no existe en el proyecto", f"{rel}: imports «{'.' * n.level}{n.module or ''}», which doesn't exist in the project"))
             else:
                 pkgs.append((n.module or "").split(".")[0])
         elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -781,7 +796,7 @@ def _parse_package(red: Red, rel: str, text: str):
     try:
         data = json.loads(text)
     except ValueError as e:
-        red.avisos.append(f"{rel}: JSON no válido ({e})")
+        red.avisos.append(T(f"{rel}: JSON no válido ({e})", f"{rel}: invalid JSON ({e})"))
         return
     if data.get("main"):
         node.add("main", data["main"])
@@ -811,7 +826,7 @@ def _parse_css(red: Red, rel: str, text: str, fileset: set[str]):
     if n_vars:
         node.add("variables CSS", str(n_vars))
     if "prefers-color-scheme" in text:
-        node.add("modo", "claro/oscuro")
+        node.add("modo", T("claro/oscuro", "light/dark"))
     media = len(re.findall(r"@media", text))
     if media:
         node.add("@media", str(media))
@@ -877,19 +892,20 @@ def _checks(red: Red, fileset: set[str]):
     # imports relativos que no existen
     for rel, spec, res in red.requires:
         if res is None:
-            av.append(f"{rel}: requiere «{spec}», que no existe")
+            av.append(T(f"{rel}: requiere «{spec}», que no existe", f"{rel}: requires «{spec}», which doesn't exist"))
     # routers sin montar
     mounted_targets = {t for _, _, t, _ in red.mounts}
     for rel in dict.fromkeys(r.rel for r in red.routes if r.router):
         if rel not in mounted_targets:
-            av.append(f"{rel} define rutas, pero ningún archivo lo monta con app.use(…)")
+            av.append(T(f"{rel} define rutas, pero ningún archivo lo monta con app.use(…)", f"{rel} defines routes, but no file mounts it with app.use(…)"))
     # rutas duplicadas
     seen: dict[tuple, tuple] = {}
     for meth, full, rel, line in red.full_routes:
         k = (meth, full)
         if k in seen and seen[k][0] != rel:
-            av.append(f"{meth} {full} está definida dos veces ({seen[k][0]}:{seen[k][1]} y {rel}:{line}): "
-                      "solo responde la primera que se registre")
+            av.append(T(f"{meth} {full} está definida dos veces ({seen[k][0]}:{seen[k][1]} y {rel}:{line}): "
+                      "solo responde la primera que se registre", f"{meth} {full} is defined twice ({seen[k][0]}:{seen[k][1]} and {rel}:{line}): "
+                      "only the first one registered answers"))
         seen.setdefault(k, (rel, line))
     # usos (formularios, fetch, redirecciones, enlaces) sin ruta
     if red.full_routes:
@@ -914,21 +930,21 @@ def _checks(red: Red, fileset: set[str]):
                 segs = u.path.strip("/").split("/")
                 for i in range(1, len(segs)):
                     if rx.match("/" + "/".join(segs[i:])):
-                        hint = (f" (¿falta montar {rel} con el prefijo /{'/'.join(segs[:i])}? hoy esa ruta es {m} {p})")
+                        hint = T((f" (¿falta montar {rel} con el prefijo /{'/'.join(segs[:i])}? hoy esa ruta es {m} {p})"), (f" (is {rel} missing the /{'/'.join(segs[:i])} mount prefix? today that route is {m} {p})"))
                         break
                 if hint:
                     break
             if not hint and u.method != "GET":
                 same = [f"{p}" for m, p, _, _ in compiled if m == u.method]
                 if same:
-                    hint = f" (rutas {u.method} existentes: {_cut(same, 4)})"
-            av.append(f"{u.rel}: {u.how} {u.method} {u.path} → no hay ninguna ruta que lo atienda{hint}")
+                    hint = T(f" (rutas {u.method} existentes: {_cut(same, 4)})", f" (existing {u.method} routes: {_cut(same, 4)})")
+            av.append(T(f"{u.rel}: {u.how} {u.method} {u.path} → no hay ninguna ruta que lo atienda{hint}", f"{u.rel}: {HOW_EN.get(u.how, u.how)} {u.method} {u.path} → no route handles it{hint}"))
     # vistas y parciales (las variables que faltan se agrupan por archivo y vista)
     lacking: dict[tuple, dict] = {}
     for rel, line, view, keys in red.renders:
         vf = _view_file(red, fileset, view)
         if vf is None:
-            av.append(f"{rel}:{line}: renderiza «{view}», pero no existe esa vista en {'/'.join(sorted(red.views_dirs))}/")
+            av.append(T(f"{rel}:{line}: renderiza «{view}», pero no existe esa vista en {'/'.join(sorted(red.views_dirs))}/", f"{rel}:{line}: renders «{view}», but that view doesn't exist in {'/'.join(sorted(red.views_dirs))}/"))
             continue
         if keys is None or not vf.endswith(".ejs"):
             continue
@@ -939,29 +955,32 @@ def _checks(red: Red, fileset: set[str]):
             g["vars"] |= missing
     for (rel, view, vf), g in lacking.items():
         in_partial = not g["vars"] <= red.tpl_vars.get(vf, set())
-        av.append(f"{rel} (línea {_cut(g['lines'], 4)}): res.render('{view}') no pasa {_cut(sorted(g['vars']), 5)}, "
-                  f"que usa {vf}" + (" o uno de sus parciales" if in_partial else "") + " → error 500 al abrirla")
+        av.append(T(f"{rel} (línea {_cut(g['lines'], 4)}): res.render('{view}') no pasa {_cut(sorted(g['vars']), 5)}, "
+                  f"que usa {vf}" + (" o uno de sus parciales" if in_partial else "") + " → error 500 al abrirla", f"{rel} (line {_cut(g['lines'], 4)}): res.render('{view}') doesn't pass {_cut(sorted(g['vars']), 5)}, "
+                  f"used by {vf}" + (" or one of its partials" if in_partial else "") + " → error 500 when opening it"))
     for rel, spec, res in red.includes:
         if res is None:
-            av.append(f"{rel}: incluye «{spec}», que no existe")
+            av.append(T(f"{rel}: incluye «{spec}», que no existe", f"{rel}: includes «{spec}», which doesn't exist"))
     # CSS/JS/imágenes enlazados
     for rel, ref in red.static_refs:
         if not _static_exists(red, fileset, rel, ref):
             near = [f for f in fileset if f.rsplit("/", 1)[-1].split(".")[0] == ref.rsplit("/", 1)[-1].split(".")[0]
                     and f.rsplit(".", 1)[-1] == ref.rsplit(".", 1)[-1]][:2]
-            av.append(f"{rel}: enlaza «{ref}», que no existe" + (f" (¿{', '.join(near)}?)" if near else ""))
+            av.append(T(f"{rel}: enlaza «{ref}», que no existe" + (f" (¿{', '.join(near)}?)" if near else ""), f"{rel}: links «{ref}», which doesn't exist" + (f" ({', '.join(near)}?)" if near else "")))
     # variables de entorno
     if red.env_sources:
         for name, rels in sorted(red.env_used.items()):
             if name not in red.env_defined and name not in ENV_BUILTIN:
-                av.append(f"{_cut(rels, 2)} usa la variable de entorno {name}, que no está en "
-                          f"{_cut(sorted(set(s.split(':')[0] for s in red.env_sources)), 3)}")
+                av.append(T(f"{_cut(rels, 2)} usa la variable de entorno {name}, que no está en "
+                          f"{_cut(sorted(set(s.split(':')[0] for s in red.env_sources)), 3)}", f"{_cut(rels, 2)} uses the environment variable {name}, which isn't in "
+                          f"{_cut(sorted(set(s.split(':')[0] for s in red.env_sources)), 3)}"))
     # tablas
     if red.tables:
         for t, rels in sorted(red.tables_used.items()):
             if t not in red.tables and t not in {"information_schema", "pg_catalog", "sqlite_master"}:
-                av.append(f"{_cut(rels, 2)} consulta la tabla «{t}», que no se crea en ningún .sql "
-                          f"(hay: {_cut(sorted(red.tables), 5)})")
+                av.append(T(f"{_cut(rels, 2)} consulta la tabla «{t}», que no se crea en ningún .sql "
+                          f"(hay: {_cut(sorted(red.tables), 5)})", f"{_cut(rels, 2)} queries the table «{t}», which no .sql creates "
+                          f"(there are: {_cut(sorted(red.tables), 5)})"))
     for pkg, table, cols in KNOWN_TABLES:
         if pkg not in red.npm_deps:
             continue
@@ -969,10 +988,11 @@ def _checks(red: Red, fileset: set[str]):
         for name in names:
             info = red.tables.get(name.lower())
             if info and not cols <= {c.lower() for c in info[1]}:
-                av.append(f"{info[0]}: la tabla «{name}» no tiene las columnas que exige {pkg} "
-                          f"({', '.join(sorted(cols))}; tiene {', '.join(info[1]) or 'ninguna'})")
+                av.append(T(f"{info[0]}: la tabla «{name}» no tiene las columnas que exige {pkg} "
+                          f"({', '.join(sorted(cols))}; tiene {', '.join(info[1]) or 'ninguna'})", f"{info[0]}: the table «{name}» lacks the columns {pkg} requires "
+                          f"({', '.join(sorted(cols))}; it has {', '.join(info[1]) or 'none'})"))
             elif info is None and red.tables:
-                av.append(f"{pkg} guarda las sesiones en la tabla «{name}», pero ningún .sql la crea")
+                av.append(T(f"{pkg} guarda las sesiones en la tabla «{name}», pero ningún .sql la crea", f"{pkg} stores sessions in the table «{name}», but no .sql creates it"))
     # Docker
     for rel, srcs in red.docker:
         ctx = _docker_context(red, rel)
@@ -983,29 +1003,29 @@ def _checks(red: Red, fileset: set[str]):
             if not any(fnmatch.fnmatch(f, pat) or f.startswith(pat.rstrip("/") + "/") for f in fileset):
                 base = s.rstrip("/").rsplit("/", 1)[-1]
                 near = [f for f in fileset if fnmatch.fnmatch(f.rsplit("/", 1)[-1], base)][:2]
-                av.append(f"{rel}: COPY {s} no encuentra nada en {ctx or 'la raíz'}"
-                          + (f" (hay {', '.join(near)})" if near else ""))
+                av.append(T(f"{rel}: COPY {s} no encuentra nada en {ctx or 'la raíz'}", f"{rel}: COPY {s} finds nothing in {ctx or 'the root'}")
+                          + (T(f" (hay {', '.join(near)})", f" (there is {', '.join(near)})") if near else ""))
     if red.compose:
         for name, d in red.compose.items():
             for ef in d.get("env_file", []):
                 if _clean(ef) not in fileset:
                     ex = [f for f in fileset if f.startswith(".env") and f != _clean(ef)]
-                    av.append(f"{red.compose_rel}: el servicio {name} usa env_file {ef}, que no existe"
-                              + (f": créalo copiando {ex[0]}" if ex else ""))
+                    av.append(T(f"{red.compose_rel}: el servicio {name} usa env_file {ef}, que no existe", f"{red.compose_rel}: the {name} service uses env_file {ef}, which doesn't exist")
+                              + (T(f": créalo copiando {ex[0]}", f": create it by copying {ex[0]}") if ex else ""))
             for vol in d.get("volumes", []):
                 host = vol.split(":")[0]
                 if host.startswith(".") and host not in (".", "./"):
                     h = _clean(host)
                     if h not in fileset and not any(f.startswith(h + "/") for f in fileset):
-                        av.append(f"{red.compose_rel}: el servicio {name} monta {host}, que no existe")
+                        av.append(T(f"{red.compose_rel}: el servicio {name} monta {host}, que no existe", f"{red.compose_rel}: the {name} service mounts {host}, which doesn't exist"))
     for rel, name, cmd in red.scripts:
         base = posixpath.dirname(rel)
         for m in re.finditer(r"\b(?:node|nodemon|ts-node|tsx)\s+([\w./-]+\.\w+)", cmd):
             target = _clean(posixpath.join(base, m.group(1)))
             if target not in fileset:
-                where = f" desde {base}/" if base else ""
-                av.append(f"{rel}: el script «{name}» ejecuta {m.group(1)}, que no existe{where}"
-                          + (" (¿package.json debería estar en la raíz?)" if base and m.group(1) in fileset else ""))
+                where = T(f" desde {base}/", f" from {base}/") if base else ""
+                av.append(T(f"{rel}: el script «{name}» ejecuta {m.group(1)}, que no existe{where}", f"{rel}: the «{name}» script runs {m.group(1)}, which doesn't exist{where}")
+                          + (T(" (¿package.json debería estar en la raíz?)", " (should package.json be in the root?)") if base and m.group(1) in fileset else ""))
     red.avisos = list(dict.fromkeys(av))
 
 
@@ -1096,11 +1116,20 @@ La red de abajo la genera el programa con /grafo y se actualiza sola.
 ## Instrucciones
 - (añade aquí tus notas)
 """
+TEMPLATE_EN = """# {name} · Clay-Myrrh
+
+Project instructions for Clay-Myrrh (like CLAUDE.md or GEMINI.md): the model always reads them when it
+works in this folder. Write the goal, the conventions and what must not be touched here.
+The map below is generated by the program with /graph and updates itself.
+
+## Instructions
+- (add your notes here)
+"""
 
 
 def update_file(path: Path, red: Red) -> bool:
     """Crea o actualiza la red dentro de Clay-Myrrh.md. Devuelve True si el archivo cambió."""
-    old = path.read_text(encoding="utf-8") if path.exists() else TEMPLATE.format(name=path.parent.name)
+    old = path.read_text(encoding="utf-8") if path.exists() else (TEMPLATE_EN if i18n.LANG == "en" else TEMPLATE).format(name=path.parent.name)
     body = strip_section(old)
     new = body.rstrip() + "\n\n" + red.text() + "\n"
     if new == old:

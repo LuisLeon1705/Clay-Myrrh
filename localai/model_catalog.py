@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from . import i18n
+
 
 @dataclass(frozen=True)
 class CatModel:
@@ -165,3 +167,83 @@ TIERS = {
 
 def category(key: str) -> Category:
     return next(c for c in CATEGORIES if c.key == key)
+
+
+# ---------------------------------------------------------------------------
+# Textos en inglés (las claves y los datos técnicos no cambian)
+# ---------------------------------------------------------------------------
+
+NOTE_EN = {
+    "qwen35-0.8b": "tiny: classify, extract data, autocomplete",
+    "qwen35-2b": "quick utilities even without a GPU",
+    "qwen35-4b": "the best small one: chat, summaries, simple code",
+    "qwen35-9b": "mid-range all-rounder; reasons well with /think",
+    "qwen36-27b": "dense: the best quality in its family, but slow if it doesn't fit in VRAM",
+    "qwen36-35b-a3b": "MoE: ~30B quality at ~3B speed; ideal with little VRAM",
+    "qwen35-122b-a10b": "workstation level (≥96 GB)",
+    "qwen35-397b-a17b": "open flagship (≥256 GB)",
+    "gemma4-e2b": "light, natural Spanish and English",
+    "gemma4-e4b": "light multimodal, good prose",
+    "gemma4-12b": "very good writing and dialogue",
+    "gemma4-31b": "high-quality dense; slow without 24 GB of VRAM",
+    "qwen3-coder-30b": "code specialist, fast MoE",
+    "glm47-flash": "fast MoE, good at code and front-end",
+    "devstral2": "dense, very good at multi-file projects",
+    "qwen3-coder-next": "the best MoE coder for 64 GB+",
+    "glm47": "open frontier: code and writing (≥256 GB)",
+    "mistral-small-32": "balanced writing",
+    "paddleocr-vl": "very light document OCR (experimental with the master prompt)",
+    "qwen3vl-4b": "fast, reliable reader",
+    "qwen25vl-7b": "very good with scanned tables (tested on this machine)",
+    "qwen3vl-8b": "mid-range reader, better OCR",
+    "qwen3vl-30b-a3b": "high-quality MoE reader",
+    "qwen3vl-32b": "the best dense reader (needs 24 GB of VRAM to run smoothly)",
+}
+CAT_EN = {
+    "utilidad": ("Utility", "Everyday assistant: quick questions, summaries, translating, rewriting emails, extracting data.",
+                 "Works very well locally. A cloud AI (e.g. Claude) only adds value if you need up-to-date information "
+                 "from the internet or answers on very specialised topics."),
+    "narracion": ("Storytelling", "Creative writing: stories, role-play, scripts, dialogue, worlds. Style and "
+                  "consistency come first.",
+                  "Local is ideal for drafts, role-play and privacy. For long novels with continuity between chapters "
+                  "or very fine style editing, a model like Claude keeps consistency better."),
+    "programacion": ("Programming", "Write, explain and fix code; generate pages and scripts (also with /zero).",
+                     "Local is good for single files, snippets, simple pages and private code. For multi-file projects, "
+                     "large refactors, debugging a real repository or agents that run commands, Claude (or Claude "
+                     "Code) is clearly better."),
+    "diseno": ("Design", "Web/UI design: lay out pages, review screenshots and mockups (uses vision). Image generation "
+               "(Stable Diffusion, FLUX) needs another tool such as ComfyUI.",
+               "Local lays out correct pages; good visual taste, complex layouts and design critique from screenshots "
+               "are still much better in models like Claude."),
+    "cad": ("CAD", "Parametric modelling in code (OpenSCAD, CadQuery, FreeCAD Python), part calculations and "
+            "tolerances. It needs spatial reasoning: thinking is turned on.",
+            "Spatial reasoning is the weak spot of local models: use them for simple parts and scripts. For "
+            "assemblies, precise geometry or reviewing a design, use Claude or the CAD software itself. AI 3D "
+            "generation (Hunyuan3D) goes through ComfyUI, not this CLI."),
+    "lectura": ("File reading", "The 'visual reader': transcribes images and scanned PDFs so your chat model can work "
+                "with them.",
+                "Local works very well with clean scans and protects your privacy. For handwriting, very complex "
+                "tables or PDFs with hundreds of pages, Claude reads more reliably."),
+    "multi": ("All-purpose", "A single model that does everything reasonably well: chat, code, vision and writing.",
+              "A local all-rounder covers 80% of everyday use. For critical work (legal, medical, financial) or long "
+              "multi-step tasks, compare it with Claude."),
+}
+TIERS_EN = {
+    "basico": ("Basic", "Fast and light: instant answers, leaves the machine free. Less depth."),
+    "moderado": ("Moderate", "Balance: the best quality that still runs comfortably (≈8 t/s or more)."),
+    "extensivo": ("Extensive", "The highest quality that fits in your memory, even if slow. For tasks you leave "
+                               "running or where quality matters more than time."),
+}
+
+
+def note(m: CatModel) -> str:
+    return NOTE_EN.get(m.key, m.note) if i18n.LANG == "en" else m.note
+
+
+def cat_text(c: Category) -> tuple[str, str, str]:
+    """(nombre, descripción, local o nube) en el idioma de la interfaz."""
+    return CAT_EN.get(c.key, (c.name, c.desc, c.cloud)) if i18n.LANG == "en" else (c.name, c.desc, c.cloud)
+
+
+def tier_text(key: str) -> tuple[str, str]:
+    return TIERS_EN[key] if i18n.LANG == "en" else TIERS[key]

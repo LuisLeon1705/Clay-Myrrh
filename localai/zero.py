@@ -27,7 +27,8 @@ from rich.text import Text
 
 from . import files as filemod
 from . import render
-from . import webkit
+from . import i18n, webkit
+from .i18n import T
 from .config import APP_DIR
 from .engine import EngineError, GenParams
 from .render import console, error, ok, say, warn
@@ -147,6 +148,83 @@ SECTION_COMPONENTS = {
     "Chat de preguntas frecuentes": "chatbot", "Aviso de cookies": "cookies",
     "Ventana con condiciones / aviso legal": "modal", "Presupuesto o factura imprimible": "invoice",
 }
+# --- textos en inglés para mostrar (los valores internos y la especificación al modelo siguen en español) ---
+OPTION_EN = {
+    "landing": ("Landing / presentation", "a page with sections for a business or product"),
+    "restaurante": ("Restaurant / café", "menu with prices, opening hours, bookings and location"),
+    "servicios": ("Appointment-based business", "hair salon, clinic, workshop…: services, team and bookings"),
+    "evento": ("Event / launch", "countdown, agenda, sign-up and questions"),
+    "curso": ("Course / academy", "syllabus, teachers, quiz, prices and enrolment"),
+    "ong": ("NGO / campaign", "the cause, fundraising goals and how to help"),
+    "portafolio": ("Personal portfolio", "introduce yourself, your projects and contact"),
+    "blog": ("Blog", "post list, single post, categories"),
+    "tienda": ("Shop / catalogue", "products, filters and cart"),
+    "panel": ("Dashboard", "indicators, charts and tables"),
+    "productividad": ("Productivity app", "kanban board, tasks, calendar and expenses"),
+    "app": ("Management app (CRUD)", "list, create, edit and delete records"),
+    "vanilla": ("HTML + CSS + JavaScript", "nothing to install: opens with a double click"),
+    "tailwind": ("HTML + Tailwind (CDN)", "utility classes, no build step"),
+    "react": ("React + Vite", "needs Node.js (npm install, npm run dev)"),
+    "vue": ("Vue 3 + Vite", "needs Node.js (npm install, npm run dev)"),
+    "none": ("No / none", ""),
+    "email": ("Email and password", "sign-up, sign-in and sign-out"),
+    "google": ("Google (OAuth)", "'Sign in with Google' button"),
+    "demo": ("Simulated (prototype)", "test sign-in screen in the browser, no server"),
+    "local": ("localStorage (browser)", "no server; the data lives in that browser"),
+    "sqlite": ("SQLite", "a database file; needs a backend"),
+    "postgres": ("PostgreSQL", "database server; needs a backend"),
+    "supabase": ("Supabase", "cloud database + login, no backend of your own"),
+    "node": ("Node.js + Express", "JavaScript on the server too"),
+    "python": ("Python + Flask", "simple and readable"),
+    "minimal": ("Clean minimalist", "lots of white space, clean typography"),
+    "dark": ("Modern dark", "dark background, colour accents, soft glassmorphism"),
+    "corporate": ("Corporate", "sober, blues, trustworthy"),
+    "colorful": ("Colourful and youthful", "gradients, rounded shapes"),
+    "components": ("Prebuilt components (recommended)",
+                   "the AI only picks components and writes the content: ~3–4× fewer tokens and a tested design"),
+    "scratch": ("From scratch", "the AI writes all the HTML, CSS and JS (freer, slower and more fragile)"),
+}
+SECTION_EN = {
+    "Hero con llamada a la acción": "Hero with call to action", "Logos de clientes": "Client logos",
+    "Servicios / características": "Services / features", "Características con imagen": "Features with image",
+    "Beneficios": "Benefits", "Testimonios": "Testimonials", "Precios": "Pricing", "Comparativa de planes": "Plan comparison",
+    "Preguntas frecuentes": "FAQ", "Formulario de contacto": "Contact form", "Pie de página": "Footer",
+    "Carta con precios": "Menu with prices", "Horario (abierto ahora)": "Opening hours (open now)",
+    "Galería del local": "Venue gallery", "Equipo": "Team", "Opiniones": "Reviews", "Reserva de mesa por pasos": "Step-by-step table booking",
+    "Mapa": "Map", "Servicios con precios": "Services with prices", "Antes y después": "Before and after",
+    "Reserva de cita por pasos": "Step-by-step appointment booking", "Calculadora de presupuesto": "Quote calculator",
+    "Cuenta regresiva": "Countdown", "Ponentes / artistas": "Speakers / artists", "Agenda (calendario)": "Agenda (calendar)",
+    "Entradas y precios": "Tickets and prices", "Inscripción por pasos": "Step-by-step sign-up",
+    "Temario en pestañas": "Syllabus in tabs", "Profesores": "Teachers", "Test de nivel": "Level test",
+    "Matrícula por pasos": "Step-by-step enrolment", "Nuestra causa": "Our cause", "Metas de recaudación": "Fundraising goals",
+    "Cifras de impacto": "Impact figures", "Historias (testimonios)": "Stories (testimonials)",
+    "Hazte voluntario (formulario)": "Volunteer (form)", "Boletín": "Newsletter", "Hero": "Hero", "Sobre mí": "About me",
+    "Proyectos (galería con filtro)": "Projects (filterable gallery)", "Habilidades": "Skills", "Experiencia": "Experience",
+    "Cabecera y menú": "Header and menu", "Listado de entradas": "Post list", "Entrada individual": "Single post",
+    "Categorías": "Categories", "Buscador": "Search", "Suscripción al boletín": "Newsletter sign-up",
+    "Encuesta a los lectores": "Reader poll", "Cabecera con carrito": "Header with cart", "Catálogo con filtros": "Filterable catalogue",
+    "Ficha de producto": "Product page", "Carrito": "Cart", "Checkout simulado": "Simulated checkout", "Menú lateral": "Sidebar menu",
+    "Tarjetas de indicadores": "KPI cards", "Gráfico de barras (SVG, sin librerías)": "Bar chart (SVG, no libraries)",
+    "Gráfico de líneas": "Line chart", "Gráfico circular": "Pie chart", "Tabla con búsqueda y orden": "Searchable, sortable table",
+    "Metas y progreso": "Goals and progress", "Ajustes de usuario": "User settings", "Tablero kanban": "Kanban board",
+    "Lista de tareas": "To-do list", "Calendario": "Calendar", "Control de gastos": "Expense tracker", "Calculadora": "Calculator",
+    "Listado con búsqueda": "Searchable list", "Formulario crear/editar": "Create/edit form",
+    "Borrar con confirmación": "Delete with confirmation", "Filtros": "Filters", "Exportar a CSV": "Export to CSV",
+    "Acceso de usuarios (simulado)": "User sign-in (simulated)", "Aviso superior (oferta o novedad)": "Top banner (offer or news)",
+    "Botón de WhatsApp y modo oscuro": "WhatsApp button and dark mode", "Chat de preguntas frecuentes": "FAQ chat",
+    "Aviso de cookies": "Cookie notice", "Ventana con condiciones / aviso legal": "Terms / legal notice window",
+    "Presupuesto o factura imprimible": "Printable quote or invoice",
+}
+
+
+def _shown(value: str, label: str, meta: str) -> tuple[str, str]:
+    """Etiqueta y descripción de una opción en el idioma de la interfaz."""
+    return OPTION_EN.get(value, (label, meta)) if i18n.LANG == "en" else (label, meta)
+
+
+def _sec(name: str) -> str:
+    return SECTION_EN.get(name, name) if i18n.LANG == "en" else name
+
 FRONT_RULES = {
     "vanilla": "HTML, CSS y JavaScript puros: sin Tailwind, Bootstrap ni ninguna librería o CDN.",
     "tailwind": "Tailwind por CDN (<script src=\"https://cdn.tailwindcss.com\"></script>) y JavaScript puro; nada más.",
@@ -212,59 +290,61 @@ class Project:
 
 def _sel(title, items, step, total, default=0):
     from .inputbox import Choice, select
-    return select(f"Prompt-Zero · {step}/{total} · {title}", [Choice(v, l, m) for v, l, m in items],
+    return select(f"Prompt-Zero · {step}/{total} · {title}", [Choice(v, *_shown(v, l, m)) for v, l, m in items],
                   render.current, default)
 
 
 def questionnaire() -> dict | None:
     total = 8
     try:
-        name = console.input("[accent]Nombre del proyecto[/] [dim](p. ej. «Café Aurora»)[/]: ").strip()
+        name = console.input(T("[accent]Nombre del proyecto[/] [dim](p. ej. «Café Aurora»)[/]: ", "[accent]Project name[/] [dim](e.g. «Aurora Café»)[/]: ")).strip()
         if not name:
             return None
-        desc = console.input("[accent]Descríbelo en una frase[/] [dim](qué es y para quién)[/]: ").strip()
+        desc = console.input(T("[accent]Descríbelo en una frase[/] [dim](qué es y para quién)[/]: ", "[accent]Describe it in one sentence[/] [dim](what it is and who it's for)[/]: ")).strip()
     except (EOFError, KeyboardInterrupt):
         return None
     a = {"name": name, "desc": desc}
-    a["type"] = _sel("¿Qué tipo de web?", TYPES, 1, total)
+    a["type"] = _sel(T("¿Qué tipo de web?", "What kind of website?"), TYPES, 1, total)
     if a["type"] is None:
         return None
-    a["front"] = _sel("¿Qué frontend?", FRONT, 2, total)
+    a["front"] = _sel(T("¿Qué frontend?", "Which frontend?"), FRONT, 2, total)
     if a["front"] is None:
         return None
-    a["login"] = _sel("¿Necesita login?", LOGIN, 3, total)
+    a["login"] = _sel(T("¿Necesita login?", "Does it need a login?"), LOGIN, 3, total)
     if a["login"] is None:
         return None
     dbs = DB if a["login"] in ("none", "demo") else [d for d in DB if d[0] not in ("none", "local")]
-    a["db"] = _sel("¿Base de datos?", dbs, 4, total)
+    a["db"] = _sel(T("¿Base de datos?", "Database?"), dbs, 4, total)
     if a["db"] is None:
         return None
     needs_backend = a["db"] in ("sqlite", "postgres") or (a["login"] not in ("none", "demo") and a["db"] != "supabase")
     a["build"] = "scratch"
     if not needs_backend and a["login"] in ("none", "demo") and a["db"] in ("none", "local") and a["front"] in ("vanilla", "tailwind"):
-        a["build"] = _sel("¿Cómo la construimos?", BUILD, 5, total) or "components"
+        a["build"] = _sel(T("¿Cómo la construimos?", "How do we build it?"), BUILD, 5, total) or "components"
     a["backend"] = "none"
     if needs_backend:
-        a["backend"] = _sel("Hace falta un servidor: ¿con qué?", BACKEND, 5, total)
+        a["backend"] = _sel(T("Hace falta un servidor: ¿con qué?", "A server is needed: with what?"), BACKEND, 5, total)
         if a["backend"] is None:
             return None
-    a["style"] = _sel("¿Estilo visual?", STYLE, 6, total)
+    a["style"] = _sel(T("¿Estilo visual?", "Visual style?"), STYLE, 6, total)
     if a["style"] is None:
         return None
     from .inputbox import Choice, select_multi
     secs = SECTIONS[a["type"]] + (["Acceso de usuarios (simulado)"] if a["login"] == "demo" else [])
     extras = [e for e in EXTRAS if e not in secs]
     if a.get("build") == "components":
-        choices = [Choice(s, s, f"<{SECTION_COMPONENTS.get(s, 'section').split()[0]}>") for s in secs] + \
-                  [Choice(e, e, f"extra · <{SECTION_COMPONENTS.get(e, 'section').split()[0]}>") for e in extras]
+        choices = [Choice(s, _sec(s), f"<{SECTION_COMPONENTS.get(s, 'section').split()[0]}>") for s in secs] + \
+                  [Choice(e, _sec(e), f"extra · <{SECTION_COMPONENTS.get(e, 'section').split()[0]}>") for e in extras]
     else:
-        choices = [Choice(s, s) for s in secs] + [Choice(e, e, "extra") for e in extras]
-    picked = select_multi(f"Prompt-Zero · 7/{total} · Secciones y funciones (los extras no vienen marcados)", choices,
+        choices = [Choice(s, _sec(s)) for s in secs] + [Choice(e, _sec(e), "extra") for e in extras]
+    picked = select_multi(T(f"Prompt-Zero · 7/{total} · Secciones y funciones (los extras no vienen marcados)", f"Prompt-Zero · 7/{total} · Sections and features (extras are not ticked)"), choices,
                           render.current, set(secs))
     if not picked:
         return None
     a["sections"] = picked
-    a["lang"] = _sel("Idioma del contenido", [("es", "Español", ""), ("en", "Inglés", "")], 8, total) or "es"
+    langs = [("es", T("Español", "Spanish"), ""), ("en", T("Inglés", "English"), "")]
+    a["lang"] = _sel(T("Idioma del contenido", "Content language"), langs, 8, total,
+                     1 if i18n.LANG == "en" else 0) or i18n.LANG
     return a
 
 
@@ -345,8 +425,8 @@ def file_plan(a: dict) -> list[FilePlan]:
 def split_tasks(plan: list[FilePlan], budget: int) -> list[Task]:
     """Agrupa archivos consecutivos de la misma zona mientras quepan en ~70% del presupuesto."""
     if len(plan) == 1 and plan[0].path.endswith(webkit.EXT):
-        return [Task("Página con componentes", plan)]
-    tasks = [Task("Contrato técnico", [FilePlan("CONTRATO.md", "ids, clases, datos, endpoints y textos clave", 1100)])]
+        return [Task(T("Página con componentes", "Page with components"), plan)]
+    tasks = [Task(T("Contrato técnico", "Technical contract"), [FilePlan("CONTRATO.md", "ids, clases, datos, endpoints y textos clave", 1100)])]
     cur: list[FilePlan] = []
 
     def area(p):
@@ -373,7 +453,7 @@ def split_tasks(plan: list[FilePlan], budget: int) -> list[Task]:
 def measured_tps(app) -> tuple[float, str]:
     st = app.stats
     if st.gen_time > 5 and st.tokens_out > 50:
-        return st.tokens_out / st.gen_time, "medida en esta sesión"
+        return st.tokens_out / st.gen_time, T("medida en esta sesión", "measured in this session")
     try:
         from . import hardware as H
         info = app.entry.info
@@ -384,35 +464,37 @@ def measured_tps(app) -> tuple[float, str]:
         n_exp, used = info.get("expert_count"), info.get("expert_used_count")
         active = params * (used / n_exp) * 1.3 if n_exp and used else None
         f = H.estimate(H.detect(), size, params, active)
-        return f.tps, "estimada por hardware"
+        return f.tps, T("estimada por hardware", "estimated from hardware")
     except Exception:
-        return 10.0, "supuesta"
+        return 10.0, T("supuesta", "assumed")
 
 
 def show_analysis(app, proj: Project, budget: int, tps: float, how: str):
     total = sum(t.est for t in proj.tasks)
     tb = Table(border_style="border", padding=(0, 1))
-    for c, j in (("#", "right"), ("Tarea", "left"), ("Tokens est.", "right"), ("Tiempo aprox.", "right")):
+    for c, j in T((("#", "right"), ("Tarea", "left"), ("Tokens est.", "right"), ("Tiempo aprox.", "right")), (("#", "right"), ("Task", "left"), ("Est. tokens", "right"), ("Approx. time", "right"))):
         tb.add_column(c, justify=j)
     for i, t in enumerate(proj.tasks):
         mins = t.est / max(tps, 0.1) / 60
         tb.add_row(str(i), t.title, f"{t.est:,}".replace(",", "."), f"{mins:.0f} min" if mins >= 1 else "<1 min")
-    console.print(Text("Análisis de tokens", style="accent"))
-    say(f"  [dim]Modelo[/] {app.engine.name} · [dim]contexto[/] {render.human_tokens(app.n_ctx)} · "
-        f"[dim]salida máx. por tarea[/] {render.human_tokens(budget)} · [dim]velocidad[/] {tps:.1f} t/s ({how})")
+    console.print(Text(T("Análisis de tokens", "Token analysis"), style="accent"))
+    say(T(f"  [dim]Modelo[/] {app.engine.name} · [dim]contexto[/] {render.human_tokens(app.n_ctx)} · "
+        f"[dim]salida máx. por tarea[/] {render.human_tokens(budget)} · [dim]velocidad[/] {tps:.1f} t/s ({how})", f"  [dim]Model[/] {app.engine.name} · [dim]context[/] {render.human_tokens(app.n_ctx)} · "
+        f"[dim]max output per task[/] {render.human_tokens(budget)} · [dim]speed[/] {tps:.1f} t/s ({how})"))
     nf, nt = sum(len(t.files) for t in proj.tasks), len(proj.tasks)
     lo, hi = total / max(tps, 0.1) / 60 * 0.8, total / max(tps, 0.1) / 60 * 1.5
-    tiempo = f"{lo:.0f}–{hi:.0f} min" if hi >= 1.5 else "menos de 1–2 min"
-    say(f"  [dim]Proyecto:[/] {nf} archivo{'s' if nf != 1 else ''} ≈ " + f"{total:,}".replace(",", ".")
-        + f" tokens de salida en {nt} tarea{'s' if nt != 1 else ''} · [dim]tiempo total ≈[/] {tiempo}")
+    tiempo = f"{lo:.0f}–{hi:.0f} min" if hi >= 1.5 else T("menos de 1–2 min", "under 1–2 min")
+    say(T(f"  [dim]Proyecto:[/] {nf} archivo{'s' if nf != 1 else ''} ≈ ", f"  [dim]Project:[/] {nf} file{'s' if nf != 1 else ''} ≈ ") + f"{total:,}".replace(",", ".")
+        + T(f" tokens de salida en {nt} tarea{'s' if nt != 1 else ''} · [dim]tiempo total ≈[/] {tiempo}", f" output tokens in {nt} task{'s' if nt != 1 else ''} · [dim]total time ≈[/] {tiempo}"))
     console.print(tb)
     if proj.answers.get("build") == "components":
         scratch = sum(f.est for f in file_plan({**proj.answers, "build": "scratch"})) + 1100
-        say(f"  [ok]Con componentes:[/] ≈{total:,} tokens frente a ≈{scratch:,} desde cero".replace(",", ".")
-            + f" ([ok]{scratch / max(total, 1):.1f}× menos[/]); el HTML, CSS y JS los genera el programa.")
+        say(T(f"  [ok]Con componentes:[/] ≈{total:,} tokens frente a ≈{scratch:,} desde cero".replace(",", "."), f"  [ok]With components:[/] ≈{total:,} tokens versus ≈{scratch:,} from scratch")
+            + T(f" ([ok]{scratch / max(total, 1):.1f}× menos[/]); el HTML, CSS y JS los genera el programa.", f" ([ok]{scratch / max(total, 1):.1f}× fewer[/]); the program generates the HTML, CSS and JS."))
     else:
-        say("  [dim]Cada tarea recibe la especificación, el CONTRATO y un resumen de lo ya creado (no toda la "
-            "conversación), así el contexto no se llena.[/]")
+        say(T("  [dim]Cada tarea recibe la especificación, el CONTRATO y un resumen de lo ya creado (no toda la "
+            "conversación), así el contexto no se llena.[/]", "  [dim]Each task gets the specification, the CONTRACT and a summary of what already exists (not the whole "
+            "conversation), so the context doesn't fill up.[/]"))
 
 
 def output_budget(app) -> int:
@@ -554,10 +636,10 @@ def _save(proj: Project, task: Task, answer: str) -> tuple[list[str], list[str]]
 def build_page(lai: Path):
     """Convierte pagina.lai en index.html + css/styles.css + js/app.js y lo muestra."""
     rep = webkit.render_file(lai)
-    render.tool("ok" if not rep.warnings else "warn", "Página generada con componentes",
+    render.tool("ok" if not rep.warnings else "warn", T("Página generada con componentes", "Page generated with components"),
                 ", ".join(p.name for p in rep.files),
-                f"{len(rep.components)} componentes: {', '.join(rep.components)}"
-                + (f" · avisos: {'; '.join(rep.warnings[:4])}" if rep.warnings else ""))
+                T(f"{len(rep.components)} componentes: {', '.join(rep.components)}", f"{len(rep.components)} components: {', '.join(rep.components)}")
+                + (T(f" · avisos: {'; '.join(rep.warnings[:4])}", f" · warnings: {'; '.join(rep.warnings[:4])}") if rep.warnings else ""))
     return rep
 
 
@@ -578,18 +660,18 @@ def run_task(app, proj: Project, idx: int, budget: int) -> bool:
             task.status = "fallida"
             return False
         if stopped:
-            render.tool("warn", f"Tarea {idx} cancelada", task.title, "retómala con /zero continuar")
+            render.tool("warn", T(f"Tarea {idx} cancelada", f"Task {idx} cancelled"), task.title, T("retómala con /zero continuar", "resume it with /zero continue"))
             return False
         saved, bad = _save(proj, task, ans)
         for w in saved:
             n_lines = (proj.dir / w).read_text(encoding="utf-8").count("\n") + 1
-            render.tool("ok", "Archivo creado", w, f"{n_lines} líneas · {render.short_path(proj.dir / w)}")
+            render.tool("ok", T("Archivo creado", "File created"), w, T(f"{n_lines} líneas · {render.short_path(proj.dir / w)}", f"{n_lines} lines · {render.short_path(proj.dir / w)}"))
         if not bad:
             task.status = "hecha"
             proj.save()
             return True
         if attempt == 0:
-            warn(f"Faltan o están cortados: {', '.join(bad)} — reintentando de forma más compacta.")
+            warn(T(f"Faltan o están cortados: {', '.join(bad)} — reintentando de forma más compacta.", f"Missing or cut off: {', '.join(bad)} — retrying more compactly."))
             task_files = [f for f in task.files if f.path in bad]
             task.files = [f for f in task.files if f.path not in bad] + task_files
             msgs = [{"role": "system", "content": SYSTEM},
@@ -599,8 +681,8 @@ def run_task(app, proj: Project, idx: int, budget: int) -> bool:
             params.max_tokens = budget
     task.status = "incompleta"
     proj.save()
-    render.tool("warn", f"Tarea {idx} incompleta", task.title,
-                f"revisa {', '.join(bad)} · sube /ctx y usa /zero continuar")
+    render.tool("warn", T(f"Tarea {idx} incompleta", f"Task {idx} incomplete"), task.title,
+                T(f"revisa {', '.join(bad)} · sube /ctx y usa /zero continuar", f"check {', '.join(bad)} · raise /ctx and use /zero continue"))
     return False
 
 
@@ -619,19 +701,21 @@ def _latest_unfinished() -> Project | None:
 
 def run_zero(app, resume: bool = False):
     if app.engine is None:
-        error("Carga primero un modelo (/model). Para webs va mejor uno de programación (/modo programacion).")
+        error(T("Carga primero un modelo (/model). Para webs va mejor uno de programación (/modo programacion).", "Load a model first (/model). For websites a coding one works best (/mode programacion)."))
         return
     if resume:
         proj = _latest_unfinished()
         if proj is None:
-            say("[dim]No hay proyectos a medias.[/]")
+            say(T("[dim]No hay proyectos a medias.[/]", "[dim]There are no unfinished projects.[/]"))
             return
-        ok(f"Retomando «{proj.name}» ({sum(t.status == 'hecha' for t in proj.tasks)}/{len(proj.tasks)} tareas hechas)")
+        ok(T(f"Retomando «{proj.name}» ({sum(t.status == 'hecha' for t in proj.tasks)}/{len(proj.tasks)} tareas hechas)", f"Resuming «{proj.name}» ({sum(t.status == 'hecha' for t in proj.tasks)}/{len(proj.tasks)} tasks done)"))
     else:
         console.print(Panel(Text.from_markup(
-            "[accent]Prompt-Zero[/] te hace unas preguntas, planifica los archivos, reparte el trabajo en tareas que "
+            T("[accent]Prompt-Zero[/] te hace unas preguntas, planifica los archivos, reparte el trabajo en tareas que "
             "quepan en tu modelo y las ejecuta una a una guardando el resultado.\n[dim]Esc cancela en cualquier "
-            "momento; /zero continuar retoma.[/]"), border_style="border"))
+            "momento; /zero continuar retoma.[/]", "[accent]Prompt-Zero[/] asks you a few questions, plans the files, splits the work into tasks that "
+            "fit your model and runs them one by one, saving the result.\n[dim]Esc cancels at any "
+            "time; /zero continue resumes.[/]")), border_style="border"))
         a = questionnaire()
         if not a:
             say("[dim]Cancelado.[/]")
@@ -641,18 +725,18 @@ def run_zero(app, resume: bool = False):
         while (PROJECTS_DIR / slug).exists():
             slug, n = f"{base}-{n}", n + 1
         proj = Project(a["name"], slug, a["desc"], a, created=time.strftime("%Y-%m-%d %H:%M"), model=app.engine.name)
-        console.print(Panel(spec_text(a), title="Especificación", title_align="left", border_style="border"))
+        console.print(Panel(spec_text(a), title=T("Especificación", "Specification"), title_align="left", border_style="border"))
     if app.n_ctx and app.n_ctx < 8192:
-        warn(f"El contexto actual ({app.n_ctx}) es pequeño para generar archivos: recomiendo /ctx 16k o más.")
+        warn(T(f"El contexto actual ({app.n_ctx}) es pequeño para generar archivos: recomiendo /ctx 16k o más.", f"The current context ({app.n_ctx}) is small for generating files: I recommend /ctx 16k or more."))
     budget = output_budget(app)
     if not resume:
         proj.tasks = split_tasks(file_plan(proj.answers), budget)
     tps, how = measured_tps(app)
     show_analysis(app, proj, budget, tps, how)
     pending = [i for i, t in enumerate(proj.tasks) if t.status != "hecha"]
-    if not app.confirm(f"¿Empezar? ({len(pending)} tareas)", default=True):
+    if not app.confirm(T(f"¿Empezar? ({len(pending)} tareas)", f"Start? ({len(pending)} tasks)"), default=True):
         proj.save()
-        say(f"[dim]Plan guardado en {render.short_path(proj.dir)}. /zero continuar cuando quieras.[/]")
+        say(T(f"[dim]Plan guardado en {render.short_path(proj.dir)}. /zero continuar cuando quieras.[/]", f"[dim]Plan saved in {render.short_path(proj.dir)}. /zero continue whenever you like.[/]"))
         return
     proj.save()
     app.project_dir = proj.dir
@@ -660,25 +744,33 @@ def run_zero(app, resume: bool = False):
         if not run_task(app, proj, i, budget):
             break
     if proj.answers.get("build") == "components" and (proj.dir / "index.html").exists():
-        (proj.dir / "README.md").write_text(
-            f"# {proj.name}\n\n{proj.desc}\n\nPágina generada con Clay-Myrrh y sus componentes prediseñados.\n\n"
-            "- Abre `index.html` en el navegador (no necesita instalar nada).\n"
-            "- Para cambiar textos, colores o secciones edita `pagina.lai` (o pídeselo al modelo) y se regenera.\n"
-            "- Tema y color: primera línea `<page theme=\"…\" accent=\"#hex\" font=\"…\">`.\n", encoding="utf-8")
+        if proj.answers.get("lang") == "en":       # el README va en el idioma del contenido de la web
+            readme = (f"# {proj.name}\n\n{proj.desc}\n\nPage generated with Clay-Myrrh and its prebuilt components.\n\n"
+                      "- Open `index.html` in the browser (nothing to install).\n"
+                      "- To change texts, colours or sections edit `pagina.lai` (or ask the model) and it is regenerated.\n"
+                      "- Theme and colour: first line `<page theme=\"…\" accent=\"#hex\" font=\"…\">`.\n")
+        else:
+            readme = (f"# {proj.name}\n\n{proj.desc}\n\nPágina generada con Clay-Myrrh y sus componentes prediseñados.\n\n"
+                      "- Abre `index.html` en el navegador (no necesita instalar nada).\n"
+                      "- Para cambiar textos, colores o secciones edita `pagina.lai` (o pídeselo al modelo) y se regenera.\n"
+                      "- Tema y color: primera línea `<page theme=\"…\" accent=\"#hex\" font=\"…\">`.\n")
+        (proj.dir / "README.md").write_text(readme, encoding="utf-8")
     done = sum(t.status == "hecha" for t in proj.tasks)
     files = sorted(str(p.relative_to(proj.dir)) for p in proj.dir.rglob("*") if p.is_file() and p.name != "zero.json")
     status = "ok" if done == len(proj.tasks) else "warn"
-    render.tool(status, f"Proyecto «{proj.name}»", f"{done}/{len(proj.tasks)} tareas",
-                f"{len(files)} archivos en {render.short_path(proj.dir)}")
+    render.tool(status, T(f"Proyecto «{proj.name}»", f"Project «{proj.name}»"), T(f"{done}/{len(proj.tasks)} tareas", f"{done}/{len(proj.tasks)} tasks"),
+                T(f"{len(files)} archivos en {render.short_path(proj.dir)}", f"{len(files)} files in {render.short_path(proj.dir)}"))
     if done == len(proj.tasks):
         index = proj.dir / "index.html"
         if proj.answers["front"] in ("vanilla", "tailwind") and index.exists():
             app.last_saved = [index]
-            say("  [dim]/open lo abre en el navegador · /archivos lista el proyecto · pide cambios con normalidad: "
-                "los archivos nuevos se guardan en la carpeta del proyecto[/]")
+            say(T("  [dim]/open lo abre en el navegador · /archivos lista el proyecto · pide cambios con normalidad: "
+                "los archivos nuevos se guardan en la carpeta del proyecto[/]", "  [dim]/open opens it in the browser · /files lists the project · ask for changes as usual: "
+                "new files are saved in the project folder[/]"))
         else:
-            say("  [dim]Sigue el README.md para instalar y arrancar (npm install / pip install…). /archivos abrir "
-                "abre la carpeta.[/]")
+            say(T("  [dim]Sigue el README.md para instalar y arrancar (npm install / pip install…). /archivos abrir "
+                "abre la carpeta.[/]", "  [dim]Follow README.md to install and start it (npm install / pip install…). /files open "
+                "opens the folder.[/]"))
         app.history += [
             {"role": "user", "content": f"[Prompt-Zero] Crea el proyecto «{proj.name}».\n{spec_text(proj.answers)}"},
             {"role": "assistant", "content": "Proyecto creado. Archivos:\n" + "\n".join(f"- {f}" for f in files)
@@ -686,4 +778,4 @@ def run_zero(app, resume: bool = False):
         ]
         app._mark_ctx()
     else:
-        say("  [dim]Ajusta lo necesario (/ctx, /model) y usa /zero continuar.[/]")
+        say(T("  [dim]Ajusta lo necesario (/ctx, /model) y usa /zero continuar.[/]", "  [dim]Adjust what you need (/ctx, /model) and use /zero continue.[/]"))

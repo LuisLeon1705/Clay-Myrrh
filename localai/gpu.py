@@ -23,6 +23,8 @@ import threading
 import time
 from dataclasses import dataclass
 
+from .i18n import T
+
 MiB = 1024 * 1024
 GiB = 1024 * MiB
 MIN_DEDICATED = 1 * GiB                    # por debajo: integrada o adaptador virtual, no cuenta
@@ -212,8 +214,8 @@ def _identify() -> GPUInfo:
              if a["bytes"] >= MIN_DEDICATED and not any(s in a["name"].lower() for s in SKIP_NAMES)]
     if cands:
         best = max(cands, key=lambda a: a["bytes"])
-        return GPUInfo(best["name"], vendor_from(best["name"], best["pci"]), best["bytes"], 0, "registro de Windows")
-    return GPUInfo(source="sin GPU dedicada detectada")
+        return GPUInfo(best["name"], vendor_from(best["name"], best["pci"]), best["bytes"], 0, T("registro de Windows", "Windows registry"))
+    return GPUInfo(source=T("sin GPU dedicada detectada", "no dedicated GPU detected"))
 
 
 def _registry_free(total: int, max_age: float) -> tuple[int, bool]:
@@ -250,7 +252,7 @@ def info(max_age: float = 2.0) -> GPUInfo:
             if r:
                 return GPUInfo(r[0], "nvidia", r[1], r[2], "nvidia-smi")
         free, est = _registry_free(s.total, max_age)
-        src = "registro de Windows · " + ("VRAM libre estimada (sin contador)" if est else "contador de rendimiento")
+        src = T("registro de Windows · " + ("VRAM libre estimada (sin contador)" if est else "contador de rendimiento"), "Windows registry · " + ("estimated free VRAM (no counter)" if est else "performance counter"))
         return GPUInfo(s.name, s.vendor, s.total, free, src, est)
 
 
@@ -259,25 +261,34 @@ VENDOR_NAME = {"nvidia": "NVIDIA", "amd": "AMD", "intel": "Intel"}
 
 def engine_advice(vendor: str) -> tuple[str, list[str]]:
     """(resumen, pasos) para instalar llama-cpp-python con aceleración en esta GPU."""
+    vulkan = '$env:CMAKE_ARGS="-DGGML_VULKAN=on"; pip install llama-cpp-python --no-cache-dir --force-reinstall'
     if vendor in ("amd", "intel"):
         v = VENDOR_NAME[vendor]
-        return (f"Con una GPU {v}, «pip install llama-cpp-python» instala la versión SOLO CPU: necesitas una compilada "
-                "con Vulkan.", [
-                    "Instala el Vulkan SDK (vulkan.lunarg.com) y Visual Studio Build Tools con «Desarrollo para el "
-                    "escritorio con C++».",
-                    'En PowerShell: $env:CMAKE_ARGS="-DGGML_VULKAN=on"; pip install llama-cpp-python --no-cache-dir '
-                    "--force-reinstall",
-                    "Sin compilar: instala Ollama (ollama.com), que usa la GPU si tu modelo de tarjeta está soportado, "
-                    "y elige sus modelos con /model.",
+        return (T(f"Con una GPU {v}, «pip install llama-cpp-python» instala la versión SOLO CPU: necesitas una "
+                  "compilada con Vulkan.",
+                  f"With a {v} GPU, «pip install llama-cpp-python» installs the CPU-ONLY build: you need one built "
+                  "with Vulkan."), [
+                    T("Instala el Vulkan SDK (vulkan.lunarg.com) y Visual Studio Build Tools con «Desarrollo para el "
+                      "escritorio con C++».",
+                      "Install the Vulkan SDK (vulkan.lunarg.com) and Visual Studio Build Tools with «Desktop "
+                      "development with C++»."),
+                    T("En PowerShell: ", "In PowerShell: ") + vulkan,
+                    T("Sin compilar: instala Ollama (ollama.com), que usa la GPU si tu modelo de tarjeta está "
+                      "soportado, y elige sus modelos con /model.",
+                      "Without building anything: install Ollama (ollama.com), which uses the GPU if your card is "
+                      "supported, and pick its models with /model."),
                 ])
     if vendor == "nvidia":
-        return ("Con NVIDIA sirve la versión Vulkan, y la CUDA es algo más rápida leyendo prompts.", [
-            "Wheel precompilada CUDA: busca una «cu12x» para tu versión de Python (o compila con "
-            '$env:CMAKE_ARGS="-DGGML_CUDA=on").',
-            'Vulkan: Vulkan SDK + $env:CMAKE_ARGS="-DGGML_VULKAN=on"; pip install llama-cpp-python --no-cache-dir '
-            "--force-reinstall",
+        return (T("Con NVIDIA sirve la versión Vulkan, y la CUDA es algo más rápida leyendo prompts.",
+                  "With NVIDIA the Vulkan build works, and the CUDA one is a bit faster at reading prompts."), [
+            T("Wheel precompilada CUDA: busca una «cu12x» para tu versión de Python (o compila con "
+              '$env:CMAKE_ARGS="-DGGML_CUDA=on").',
+              "Prebuilt CUDA wheel: look for a «cu12x» one for your Python version (or build with "
+              '$env:CMAKE_ARGS="-DGGML_CUDA=on").'),
+            "Vulkan: Vulkan SDK + " + vulkan,
         ])
-    return ("Sin GPU dedicada, la versión normal (solo CPU) es la adecuada.", ["pip install llama-cpp-python"])
+    return (T("Sin GPU dedicada, la versión normal (solo CPU) es la adecuada.",
+              "Without a dedicated GPU, the normal (CPU-only) build is the right one."), ["pip install llama-cpp-python"])
 
 
 def reset():

@@ -34,12 +34,19 @@ DEFAULT_SYSTEM_PROMPT = (
     "limpio. Si te adjuntan imágenes o documentos, básate solo en su contenido real y di "
     "claramente si algo no se lee o no aparece."
 )
+# con la interfaz en inglés se usa este en lugar del anterior (si el usuario no lo ha cambiado)
+DEFAULT_SYSTEM_PROMPT_EN = (
+    "You are an expert, concise local AI assistant. Answer in English with clean Markdown. "
+    "If you are given images or documents, rely only on their actual content and say clearly if "
+    "something is unreadable or missing."
+)
 
 
 @dataclass
 class Settings:
     last_model: str | None = None
     theme: str = "oscuro"
+    language: str = "auto"             # idioma de los comandos: auto (el de Windows) | es | en
     system_prompt: str = DEFAULT_SYSTEM_PROMPT
     # carga del modelo
     ctx: int | str = "auto"            # int o "auto"

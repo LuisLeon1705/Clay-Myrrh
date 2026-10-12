@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import grafo
+from .i18n import T
 from .config import APP_DIR, LEGACY_MEMORY_FILENAMES, MEMORY_FILENAME
 
 BACKUP_DIR = APP_DIR / "respaldos"
@@ -277,7 +278,7 @@ class Workspace:
     def __init__(self, root: Path, session_id: str):
         self.root = Path(root).expanduser().resolve()
         if not self.root.is_dir():
-            raise ValueError(f"'{root}' no es una carpeta.")
+            raise ValueError(T(f"'{root}' no es una carpeta.", f"'{root}' is not a folder."))
         self.name = self.root.name or str(self.root)
         self.session_id = session_id
         self.history: list[ChangeSet] = []
@@ -299,7 +300,7 @@ class Workspace:
         p = Path(rel.strip().strip("'\"").replace("\\", "/")).expanduser()
         target = (p if p.is_absolute() else self.root / p).resolve()
         if target != self.root and self.root not in target.parents:
-            raise ValueError(f"'{rel}' queda fuera del proyecto ({self.root}).")
+            raise ValueError(T(f"'{rel}' queda fuera del proyecto ({self.root}).", f"'{rel}' is outside the project ({self.root})."))
         return target
 
     def _load_gitignore(self) -> list[str]:
@@ -434,11 +435,11 @@ class Workspace:
         p = self.resolve(rel)
         if not p.exists():
             near = [r for r, _ in self.walk() if r.rsplit("/", 1)[-1].lower() == p.name.lower()][:3]
-            raise ValueError(f"no existe '{rel}'" + (f" (¿quizá {', '.join(near)}?)" if near else ""))
+            raise ValueError(T(f"no existe '{rel}'", f"'{rel}' does not exist") + (T(f" (¿quizá {', '.join(near)}?)", f" (maybe {', '.join(near)}?)") if near else ""))
         if p.is_dir():
             return self.listing(rel)
         if p.suffix.lower() in BINARY_EXT:
-            raise ValueError(f"'{rel}' es binario ({p.stat().st_size:,} bytes): no se puede leer como texto")
+            raise ValueError(T(f"'{rel}' es binario ({p.stat().st_size:,} bytes): no se puede leer como texto", f"'{rel}' is binary ({p.stat().st_size:,} bytes): it can't be read as text"))
         text = p.read_text(encoding="utf-8", errors="replace")
         lines = text.split("\n")
         n = len(lines)
@@ -534,7 +535,7 @@ class Workspace:
     def listing(self, rel: str = ".") -> str:
         base = self.resolve(rel)
         if not base.is_dir():
-            raise ValueError(f"'{rel}' no es una carpeta")
+            raise ValueError(T(f"'{rel}' no es una carpeta", f"'{rel}' is not a folder"))
         sub = self.rel(base) if base != self.root else "."
         files = self.walk(sub, limit=400)
         body = "\n".join(f"{r}  ({n:,} B)".replace(",", ".") for r, n in files) or "(vacía)"
@@ -583,11 +584,12 @@ class Workspace:
     def write(self, rel: str, content: str) -> Path:
         p = self.resolve(rel)
         if p.is_dir():
-            raise ValueError(f"'{rel}' es una carpeta")
+            raise ValueError(T(f"'{rel}' es una carpeta", f"'{rel}' is a folder"))
         old = p.read_text(encoding="utf-8", errors="replace") if p.exists() else None
         if old is not None and _looks_truncated(old, content):
-            raise ValueError(f"el nuevo contenido de '{rel}' parece incompleto (tiene «…» o «resto igual» y es mucho "
-                             "más corto): para cambiar partes de un archivo existente usa <editar>")
+            raise ValueError(T(f"el nuevo contenido de '{rel}' parece incompleto (tiene «…» o «resto igual» y es mucho "
+                             "más corto): para cambiar partes de un archivo existente usa <editar>", f"the new content of '{rel}' looks incomplete (it has «…» or «rest unchanged» and is much "
+                             "shorter): to change parts of an existing file use <editar>"))
         self._touch(p)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content if content.endswith("\n") else content + "\n", encoding="utf-8", newline="\n")
@@ -600,7 +602,7 @@ class Workspace:
         if not p.exists():
             if all(not s.strip() for s, _ in pairs):
                 return self.write(rel, "\n".join(r for _, r in pairs)), []
-            return None, [f"{rel}: no existe (para crearlo usa un bloque ```lenguaje {rel}```)"]
+            return None, [T(f"{rel}: no existe (para crearlo usa un bloque ```lenguaje {rel}```)", f"{rel}: does not exist (to create it use a ```language {rel}``` block)")]
         text = p.read_text(encoding="utf-8", errors="replace")
         crlf = "\r\n" in text
         text = text.replace("\r\n", "\n")
@@ -613,7 +615,7 @@ class Workspace:
             if isinstance(res, str):
                 new = res
             else:
-                errors.append(f"{rel}, edición {k}: {res[1]}")
+                errors.append(T(f"{rel}, edición {k}: {res[1]}", f"{rel}, edit {k}: {res[1]}"))
         if new == text:
             return None, errors
         self._touch(p)
@@ -623,7 +625,7 @@ class Workspace:
     def delete(self, rel: str) -> Path:
         p = self.resolve(rel)
         if not p.exists() or p.is_dir():
-            raise ValueError(f"no existe el archivo '{rel}'")
+            raise ValueError(T(f"no existe el archivo '{rel}'", f"the file '{rel}' does not exist"))
         self._touch(p)
         p.unlink()
         return p
@@ -669,16 +671,16 @@ class Workspace:
         for ch in cs.changes.values():
             p = self.root / ch.rel
             out += difflib.unified_diff(_lines(ch.backup), _lines(p), f"a/{ch.rel}", f"b/{ch.rel}", lineterm="", n=2)
-        return "\n".join(out[:max_lines]) + (f"\n… ({len(out) - max_lines} líneas más)" if len(out) > max_lines else "")
+        return "\n".join(out[:max_lines]) + (T(f"\n… ({len(out) - max_lines} líneas más)", f"\n… ({len(out) - max_lines} more lines)") if len(out) > max_lines else "")
 
 
 def summary(cs: ChangeSet) -> str:
     parts = []
     for ch in cs.changes.values():
         if ch.kind == "creado":
-            parts.append(f"{ch.rel} (nuevo, {ch.added} líneas)")
+            parts.append(T(f"{ch.rel} (nuevo, {ch.added} líneas)", f"{ch.rel} (new, {ch.added} lines)"))
         elif ch.kind == "borrado":
-            parts.append(f"{ch.rel} (borrado)")
+            parts.append(T(f"{ch.rel} (borrado)", f"{ch.rel} (deleted)"))
         else:
             parts.append(f"{ch.rel} +{ch.added} −{ch.removed}")
     return " · ".join(parts)
@@ -697,7 +699,7 @@ def _replace(text: str, search: str, repl: str) -> str | tuple[None, str]:
         i = starts[0]
         return text[:i] + repl + text[i + len(search):]
     if len(starts) > 1:
-        return None, f"el texto de BUSCAR aparece {len(starts)} veces: añade líneas de contexto para que sea único"
+        return None, T(f"el texto de BUSCAR aparece {len(starts)} veces: añade líneas de contexto para que sea único", f"the BUSCAR text appears {len(starts)} times: add context lines so it is unique")
     lines = text.split("\n")
     s_lines = search.strip("\n").split("\n")
     r_lines = repl.strip("\n").split("\n") if repl.strip("\n") else []
@@ -706,7 +708,7 @@ def _replace(text: str, search: str, repl: str) -> str | tuple[None, str]:
         hits = [i for i in range(len(lines) - len(key) + 1)
                 if all(norm(lines[i + k]) == key[k] for k in range(len(key)))]
         if len(hits) > 1:
-            return None, f"el texto de BUSCAR aparece {len(hits)} veces: añade contexto para que sea único"
+            return None, T(f"el texto de BUSCAR aparece {len(hits)} veces: añade contexto para que sea único", f"the BUSCAR text appears {len(hits)} times: add context so it is unique")
         if len(hits) == 1:
             i = hits[0]
             if norm is str.strip:              # re-sangrar el reemplazo como el original
@@ -717,8 +719,8 @@ def _replace(text: str, search: str, repl: str) -> str | tuple[None, str]:
             return "\n".join(lines[:i] + r_lines + lines[i + len(key):])
     first = next((l.strip() for l in s_lines if l.strip()), "")
     near = [i + 1 for i, l in enumerate(lines) if first and first[:40] in l][:3]
-    return None, ("no se encontró el texto de BUSCAR" + (f" (la primera línea aparece en la línea {near})"
-                                                          if near else "") + ": léelo de nuevo con <leer> y copia exacto")
+    return None, (T("no se encontró el texto de BUSCAR", "the BUSCAR text was not found") + (T(f" (la primera línea aparece en la línea {near})", f" (its first line appears at line {near})")
+                                                          if near else "") + T(": léelo de nuevo con <leer> y copia exacto", ": read it again with <leer> and copy it exactly"))
 
 
 _PLACEHOLDER = re.compile(r"(\.\.\.|…)\s*$|(resto|rest of|existing|igual que antes|sin cambios|unchanged)", re.I | re.M)

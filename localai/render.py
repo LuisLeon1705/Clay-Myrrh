@@ -18,6 +18,8 @@ from rich.table import Table
 from rich.text import Text
 from rich.theme import Theme
 
+from . import i18n
+from .i18n import T
 from .memory import GiB, MiB, Estimate, RealUsage, SysMem
 
 
@@ -184,7 +186,7 @@ def banner(version: str, status: str, tips: list[str]):
         console.print(gradient(ln, current.accent, current.user))
     console.print(Text(f"{TAGLINE} · v{version}", style="dim"))
     console.print()
-    console.print("Consejos para empezar:", style="bold")
+    console.print(T("Consejos para empezar:", "Tips to get started:"), style="bold")
     for i, tip in enumerate(tips, 1):
         console.print(Text.assemble((f"{i}. ", "dim"), Text.from_markup(tip)))
     console.print()
@@ -201,7 +203,7 @@ def user_echo(text: str):
     for ln in lines[1:12]:
         t.append("\n  " + ln[:2000])
     if len(lines) > 12:
-        t.append(f"\n  … (+{len(lines) - 12} líneas)", style="dim")
+        t.append(T(f"\n  … (+{len(lines) - 12} líneas)", f"\n  … (+{len(lines) - 12} lines)"), style="dim")
     console.print(Padding(t, (0, 1), style=f"on {current.menu_bg}", expand=True))
 
 
@@ -224,7 +226,7 @@ def tool(status: str, name: str, target: str = "", detail: str = ""):
 
 
 def select_style_hint() -> str:
-    return "[dim]↑/↓ elegir · Enter confirmar · Esc cancelar[/]"
+    return T("[dim]↑/↓ elegir · Enter confirmar · Esc cancelar[/]", "[dim]↑/↓ choose · Enter confirm · Esc cancel[/]")
 
 
 # ---------------------------------------------------------------------------
@@ -235,7 +237,7 @@ def mem_report(est: Estimate, sysmem: SysMem, vram_budget: int, ram_budget: int,
                real: RealUsage | None = None, reclaim: int = 0):
     console.print(Text(title, style="accent"))
     tb = Table(border_style="border", show_edge=False, pad_edge=False, box=None, padding=(0, 2))
-    tb.add_column("Componente", style="dim")
+    tb.add_column(T("Componente", "Component"), style="dim")
     tb.add_column("VRAM", justify="right")
     tb.add_column("RAM", justify="right")
 
@@ -243,46 +245,57 @@ def mem_report(est: Estimate, sysmem: SysMem, vram_budget: int, ram_budget: int,
         return "—" if not b else (f"{b / GiB:.2f} GB" if b >= GiB else f"{b / MiB:.0f} MB")
 
     n_on = min(max(est.ngl - 1, 0), est.n_layer)
-    tb.add_row(f"Pesos ({n_on}/{est.n_layer} capas + salida en GPU)" if est.ngl > 0 else "Pesos (todo en CPU)",
+    tb.add_row(T(f"Pesos ({n_on}/{est.n_layer} capas + salida en GPU)", f"Weights ({n_on}/{est.n_layer} layers + output on GPU)")
+               if est.ngl > 0 else T("Pesos (todo en CPU)", "Weights (all on CPU)"),
                mb(est.weights_gpu), mb(est.weights_cpu))
-    tb.add_row(f"Caché KV ({human_tokens(est.n_ctx)} ctx, {est.kv_type})", mb(est.kv_gpu), mb(est.kv_cpu))
+    tb.add_row(T(f"Caché KV ({human_tokens(est.n_ctx)} ctx, {est.kv_type})", f"KV cache ({human_tokens(est.n_ctx)} ctx, {est.kv_type})"),
+               mb(est.kv_gpu), mb(est.kv_cpu))
     if est.rs_gpu or est.rs_cpu:
-        tb.add_row("Estado recurrente (capas SSM)", mb(est.rs_gpu), mb(est.rs_cpu))
+        tb.add_row(T("Estado recurrente (capas SSM)", "Recurrent state (SSM layers)"), mb(est.rs_gpu), mb(est.rs_cpu))
     if est.mmproj_gpu:
-        tb.add_row("mmproj (codificador de visión)", mb(est.mmproj_gpu), "—")
-    tb.add_row("Buffers de cómputo", mb(est.compute_gpu), mb(est.compute_cpu))
-    tb.add_row("Contexto GPU / proceso", mb(est.overhead_gpu), mb(est.overhead_cpu))
+        tb.add_row(T("mmproj (codificador de visión)", "mmproj (vision encoder)"), mb(est.mmproj_gpu), "—")
+    tb.add_row(T("Buffers de cómputo", "Compute buffers"), mb(est.compute_gpu), mb(est.compute_cpu))
+    tb.add_row(T("Contexto GPU / proceso", "GPU / process context"), mb(est.overhead_gpu), mb(est.overhead_cpu))
     if est.calib != 1.0:
-        tb.add_row(f"Calibración (×{est.calib:.2f}, medido antes)", "", "")
-    tb.add_row(Text("TOTAL estimado", style="bold"), Text(mb(est.vram), style="bold"), Text(mb(est.ram), style="bold"))
+        tb.add_row(T(f"Calibración (×{est.calib:.2f}, medido antes)", f"Calibration (×{est.calib:.2f}, measured before)"), "", "")
+    tb.add_row(Text(T("TOTAL estimado", "Estimated TOTAL"), style="bold"), Text(mb(est.vram), style="bold"), Text(mb(est.ram), style="bold"))
     console.print(tb)
 
     vr = est.vram / vram_budget if vram_budget else 9.9
     rr = est.ram / ram_budget if ram_budget else 9.9
     line = Text("  VRAM ")
     line.append_text(bar(vr))
-    line.append(f" {gb(est.vram)} / {gb(vram_budget)} GB disponibles ({vr:.0%})", style=level_style(vr))
+    line.append(T(f" {gb(est.vram)} / {gb(vram_budget)} GB disponibles ({vr:.0%})",
+                  f" {gb(est.vram)} / {gb(vram_budget)} GB available ({vr:.0%})"), style=level_style(vr))
     console.print(line)
     line = Text("  RAM  ")
     line.append_text(bar(rr))
-    line.append(f" {gb(est.ram)} / {gb(ram_budget)} GB disponibles ({rr:.0%})", style=level_style(rr))
+    line.append(T(f" {gb(est.ram)} / {gb(ram_budget)} GB disponibles ({rr:.0%})",
+                  f" {gb(est.ram)} / {gb(ram_budget)} GB available ({rr:.0%})"), style=level_style(rr))
     console.print(line)
     if not sysmem.vram_total:
-        console.print(f"  [dim]Sin GPU dedicada detectada: todo irá a la RAM · {sysmem.source}[/]")
+        console.print(T(f"  [dim]Sin GPU dedicada detectada: todo irá a la RAM · {sysmem.source}[/]",
+                        f"  [dim]No dedicated GPU detected: everything goes to RAM · {sysmem.source}[/]"))
     elif sysmem.free_estimated:
-        console.print(f"  [dim]GPU {sysmem.gpu_name or '?'} · {gb(sysmem.vram_total)} GB · VRAM libre estimada (no se pudo "
-                      f"medir lo que usan otros programas) · margen de seguridad incluido · fuente {sysmem.source}[/]")
+        console.print(T(f"  [dim]GPU {sysmem.gpu_name or '?'} · {gb(sysmem.vram_total)} GB · VRAM libre estimada (no se pudo "
+                        f"medir lo que usan otros programas) · margen de seguridad incluido · fuente {sysmem.source}[/]",
+                        f"  [dim]GPU {sysmem.gpu_name or '?'} · {gb(sysmem.vram_total)} GB · estimated free VRAM (could not "
+                        f"measure what other programs use) · safety margin included · source {sysmem.source}[/]"))
     else:
         others = sysmem.vram_used - reclaim
-        console.print(f"  [dim]GPU {sysmem.gpu_name or '?'} · {gb(sysmem.vram_total)} GB · otros procesos usan "
-                      f"{gb(max(others, 0))} GB · margen de seguridad incluido · fuente {sysmem.source}[/]")
+        console.print(T(f"  [dim]GPU {sysmem.gpu_name or '?'} · {gb(sysmem.vram_total)} GB · otros procesos usan "
+                        f"{gb(max(others, 0))} GB · margen de seguridad incluido · fuente {sysmem.source}[/]",
+                        f"  [dim]GPU {sysmem.gpu_name or '?'} · {gb(sysmem.vram_total)} GB · other processes use "
+                        f"{gb(max(others, 0))} GB · safety margin included · source {sysmem.source}[/]"))
     for n in est.notes:
         console.print(f"  [dim]· {n}[/]")
     if real is not None and (real.gpu or real.cpu):
         est_buf = est.vram - est.overhead_gpu
         dev = (real.gpu - est_buf) / est_buf if est_buf else 0
-        console.print(f"  [dim]Real (buffers de llama.cpp): GPU {mb(real.gpu)} · CPU {mb(real.cpu)} "
-                      f"(mapeado con mmap) · estimado sin overhead {mb(est_buf)} → desviación {dev:+.0%}[/]")
+        console.print(T(f"  [dim]Real (buffers de llama.cpp): GPU {mb(real.gpu)} · CPU {mb(real.cpu)} "
+                        f"(mapeado con mmap) · estimado sin overhead {mb(est_buf)} → desviación {dev:+.0%}[/]",
+                        f"  [dim]Actual (llama.cpp buffers): GPU {mb(real.gpu)} · CPU {mb(real.cpu)} "
+                        f"(mmap-mapped) · estimate without overhead {mb(est_buf)} → deviation {dev:+.0%}[/]"))
 
 
 # ---------------------------------------------------------------------------
@@ -307,9 +320,16 @@ def pretty(text: str) -> str:
                          + "\n" + "\n".join("+ " + l for l in m.group(2).split("\n")) + "\n```", text)
     return _PART_TAG.sub("", text)
 
-PHRASES = ["Pensando", "Ordenando ideas", "Consultando a las neuronas", "Leyendo entre líneas",
-           "Atando cabos", "Calentando la GPU", "Buscando las palabras justas", "Repasando el contexto",
-           "Afinando la respuesta", "Conectando puntos"]
+PHRASES_ES = ["Pensando", "Ordenando ideas", "Consultando a las neuronas", "Leyendo entre líneas",
+              "Atando cabos", "Calentando la GPU", "Buscando las palabras justas", "Repasando el contexto",
+              "Afinando la respuesta", "Conectando puntos"]
+PHRASES_EN = ["Thinking", "Sorting ideas", "Asking the neurons", "Reading between the lines",
+              "Connecting the dots", "Warming up the GPU", "Looking for the right words", "Going over the context",
+              "Polishing the answer", "Joining the pieces"]
+
+
+def _phrases() -> list[str]:
+    return PHRASES_EN if i18n.LANG == "en" else PHRASES_ES
 
 
 class StreamView:
@@ -340,7 +360,7 @@ class StreamView:
         self.tool = tool
         self.tool_title = tool_title
         self._prefixed = not header
-        self._phrase_i = int(self.t0) % len(PHRASES)
+        self._phrase_i = int(self.t0) % len(_phrases())
         self.spinner = Spinner("dots", style="accent")
         self.live = Live(console=console, get_renderable=self._render, refresh_per_second=12,
                          transient=True, redirect_stdout=False, redirect_stderr=False)
@@ -363,18 +383,18 @@ class StreamView:
         self.tokens += 1
         if kind == "think":
             self.think += text
-            self.phase = "Razonando"
+            self.phase = T("Razonando", "Reasoning")
             return
         if kind == "relay":
             self.relay += text
-            self.phase = "Preparando el relevo"
+            self.phase = T("Preparando el relevo", "Preparing the relay")
             return
         if self.think and not self.think_done and not self.tool:
             self._finish_think()
         if not self.answer and not text.strip():
             return
         self.answer += text
-        self.phase = "Escribiendo"
+        self.phase = T("Escribiendo", "Writing")
         if not self.tool:
             self._flush_stable()
 
@@ -411,11 +431,14 @@ class StreamView:
         n_words = len(self.think.split())
         if self.show_thinking:
             body = Text(self.think.strip(), style="think")
-            console.print(Padding(Panel(body, title="💭 razonamiento", title_align="left",
+            console.print(Padding(Panel(body, title=T("💭 razonamiento", "💭 reasoning"), title_align="left",
                                         border_style="dim", padding=(0, 1)), (0, 0, 0, 2)))
         else:
-            console.print(Padding(Text(f"💭 razonó {n_words} palabras · /think last para verlo · "
-                                       f"/think show para desplegarlo siempre", style="think"), (0, 0, 0, 2)))
+            think = i18n.name("think", i18n.LANG)
+            console.print(Padding(Text(T(f"💭 razonó {n_words} palabras · {think} last para verlo · "
+                                         f"{think} show para desplegarlo siempre",
+                                         f"💭 reasoned {n_words} words · {think} last to see it · "
+                                         f"{think} show to always expand it"), style="think"), (0, 0, 0, 2)))
 
     def _flush_stable(self):
         pending = self.answer[self.printed:]
@@ -453,16 +476,17 @@ class StreamView:
         if self.phase:
             label = self.phase
         else:
-            label = PHRASES[(self._phrase_i + int(el // 4)) % len(PHRASES)]
+            label = _phrases()[(self._phrase_i + int(el // 4)) % len(_phrases())]
         t.append(f" {label}…", style="accent")
-        info = " (esc para cancelar" + (" · t ver razonamiento" if self.think and not self.think_done else "")
+        info = T(" (esc para cancelar", " (esc to cancel") + (
+            T(" · t ver razonamiento", " · t show reasoning") if self.think and not self.think_done else "")
         info += f", {el:.0f}s"
         if self.t_first and self.tokens > 1:
             dt = time.time() - self.t_first
             if dt > 0.3:
                 info += f" · {self.tokens / dt:.1f} t/s"
         if self.think and not self.think_done and not self.show_thinking:
-            info += f" · 💭 {len(self.think.split())} palabras"
+            info += T(f" · 💭 {len(self.think.split())} palabras", f" · 💭 {len(self.think.split())} words")
         t.append(info + ")", style="dim")
         return t
 

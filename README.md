@@ -18,17 +18,20 @@ que mejor van con tu equipo.
 [demo en vivo de los componentes](https://luisleon1705.github.io/Clay-Myrrh/demo/). La publica
 `.github/workflows/pages.yml` desde `site/`.
 
-Interfaz en español · Windows · Python 3.10+ (probado con 3.14).
+Windows · Python 3.10+ (probado con 3.14). **En español o en inglés** según el idioma de Windows o
+`/set language es|en` (también en `/ajustes`, con `--lang` y con el botón ES/EN del asistente): comandos,
+mensajes y asistente de instalación. Los nombres de comando de los dos idiomas funcionan siempre
+(`/deshacer` = `/undo`).
 
 ## Qué hace
-- **Chat en la terminal** con streaming en markdown, razonamiento plegable (`/think`), temas, sesiones
-  (`/resume`, `/chat`) y memoria persistente (`Clay-Myrrh.md`, como un CLAUDE.md o GEMINI.md).
+- **Chat en la terminal** con streaming en markdown, razonamiento plegable (`/razonar`), temas, sesiones
+  (`/retomar`, `/chat`) y memoria persistente (`Clay-Myrrh.md`, como un CLAUDE.md o GEMINI.md).
 - **Ajuste automático de memoria**: estima VRAM y RAM según la arquitectura de cada modelo (`/mem`) y
   elige capas en GPU y contexto (`/auto`).
 - **Visión con «lector»**: aunque tu modelo principal no tenga visión, un modelo de visión temporal
   transcribe imágenes y PDFs escaneados para él. El mmproj se empareja solo, por metadatos.
-- **Archivos**: lo que escribe el modelo (HTML, código, documentos) se guarda solo (`/archivos`, `/open`,
-  `/save`).
+- **Archivos**: lo que escribe el modelo (HTML, código, documentos) se guarda solo (`/archivos`, `/abrir`,
+  `/guardar`).
 - **Modo proyecto** (`/proyecto <carpeta>` o `clay-myrrh -d <carpeta>`): el modelo trabaja directamente sobre
   una carpeta tuya, como un proyecto de Claude Code. Lee, busca, crea y edita archivos con ediciones pequeñas
   (BUSCAR/REEMPLAZAR). Cada cambio guarda una copia: `/deshacer` lo revierte y `/cambios diff` lo muestra.
@@ -64,7 +67,7 @@ Interfaz en español · Windows · Python 3.10+ (probado con 3.14).
      mmproj/     proyectores de visión (mmproj-*.gguf)
      diffusion/  se ignora en el chat
    ```
-   Si tienes Ollama abierto, sus modelos también aparecen en `/model`.
+   Si tienes Ollama abierto, sus modelos también aparecen en `/modelo`.
 4. Comprueba que todo esté en orden:
    ```bash
    python local_ai.py --doctor
@@ -79,40 +82,41 @@ clay-myrrh -m Qwen3.6 "explica este error" -f log.txt   # pregunta directa
 clay-myrrh --mem -m Qwen3.6                # cuánta VRAM/RAM necesita, sin cargarlo
 clay-myrrh -d C:\proyectos\mi-web          # abrir una carpeta como proyecto
 clay-myrrh --grafo C:\proyectos\mi-web     # crear su Clay-Myrrh.md con la red y los avisos (sin modelo)
+clay-myrrh --lang en                      # comandos en inglés solo esta vez (/set language en: siempre)
 clay-myrrh --setup                         # asistente de instalación
 ```
 Las opciones de la línea de comandos solo
 valen para esa sesión. Para cambiar algo de forma permanente,
-usa `/settings`.
+usa `/ajustes`.
 
 ### Comandos principales
 | Comando | Para qué |
 |---|---|
-| `/model`, `/models` | elegir modelo (con tamaño, visión y memoria) · ver la tabla |
+| `/modelo`, `/modelos` | elegir modelo (con tamaño, visión y memoria) · ver la tabla |
 | `/ctx`, `/gpu`, `/kv`, `/auto` | contexto, capas en GPU, caché KV, ajuste automático |
 | `/mem` | estimación de memoria antes de cargar |
-| `/tokens`, `/temp`, `/top_p`, `/top_k`, `/min_p`, `/params` | longitud y muestreo |
-| `/think on\|off\|show\|hide\|last` | razonamiento |
-| `/file`, `/image`, `/pdf`, `@ruta` | adjuntar archivos |
+| `/tokens`, `/temp`, `/top_p`, `/top_k`, `/min_p`, `/parametros` | longitud y muestreo |
+| `/razonar on\|off\|show\|hide\|last` | razonamiento |
+| `/adjuntar`, `/imagen`, `/pdf`, `@ruta` | adjuntar archivos |
 | `/vision` | lector visual: modo, modelo, última transcripción |
-| `/archivos`, `/open`, `/save`, `/copy`, `/export` | archivos creados y respuestas |
+| `/archivos`, `/abrir`, `/guardar`, `/copiar`, `/exportar` | archivos creados y respuestas |
 | `/proyecto [ruta\|cerrar\|recargar]` | trabajar sobre una carpeta (el modelo edita sus archivos) |
 | `/grafo [ver\|avisos]` | red del proyecto en `Clay-Myrrh.md`: conexiones y avisos con pocos tokens |
 | `/cambios [diff]`, `/deshacer` | ver y revertir lo que cambió el modelo en el proyecto |
 | `/cadena <archivo \| prompts>` | encadenar varios prompts separados por `---` (ver abajo) |
 | `/plantilla <descripción>` | página o plantilla con componentes (HTML, CSS y JS generados) |
 | `/zero`, `/componentes [chat auto\|on\|off]` | webs guiadas y catálogo de componentes |
-| `/resume`, `/chat`, `/compact`, `/clear` | sesiones y contexto |
-| `/memory`, `/system` | instrucciones persistentes y prompt de sistema |
-| `/settings`, `/modo`, `/theme` | ajustes, perfiles de uso, colores |
-| `/stats`, `/doctor`, `/debug` | métricas y diagnóstico |
+| `/retomar`, `/chat`, `/compactar`, `/limpiar` | sesiones y contexto |
+| `/memoria`, `/sistema` | instrucciones persistentes y prompt de sistema |
+| `/ajustes`, `/modo`, `/tema` | ajustes, perfiles de uso, colores |
+| `/estadisticas`, `/doctor`, `/depurar` | métricas y diagnóstico |
 
 Atajos: **Shift+Enter** nueva línea · **Esc** cancelar · **t** mostrar el razonamiento en vivo ·
 **?** lista de atajos · **/** autocompleta comandos.
 
 ### Relevo automático
 Está activo por defecto. Cada respuesta reserva un 15 % de `/tokens` (configurable entre el 10 y el 25 %
-en `/settings`) para dejar un índice de lo que falta. Después:
+en `/ajustes`) para dejar un índice de lo que falta. Después:
 - Si el índice es coherente, el programa pide cada parte pendiente por separado. Con Ollama, las partes
   independientes van en paralelo.
 - Si no lo es, continúa desde las últimas líneas.
@@ -142,7 +146,7 @@ une en orden. El registro de cada cadena se guarda en `~/.local_ai/relevos/`.
   - Se rechaza reescribir un archivo con «… resto igual».
   - Un bloque cortado no sobrescribe un archivo existente.
   - Las copias se guardan en `~/.local_ai/respaldos/`.
-- **Instrucciones del proyecto:** `Clay-Myrrh.md` en la carpeta (`/grafo` lo crea, o `/memory edit proyecto`).
+- **Instrucciones del proyecto:** `Clay-Myrrh.md` en la carpeta (`/grafo` lo crea, o `/memoria edit proyecto`).
   El antiguo `LOCAL_AI.md` se sigue leyendo.
 
 ### Red del proyecto (`/grafo`)

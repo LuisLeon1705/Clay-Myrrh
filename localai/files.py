@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+
+from .i18n import T
 from pathlib import Path
 
 FILE_INSTRUCTIONS = (
@@ -209,9 +211,9 @@ def safe_target(path: str, cwd: Path) -> Path:
     target = (p if p.is_absolute() else cwd / p).resolve()
     root = cwd.resolve()
     if target != root and root not in target.parents:
-        raise ValueError(f"'{path}' queda fuera del directorio de trabajo ({root}); usa /save <ruta> dentro de él.")
+        raise ValueError(T(f"'{path}' queda fuera del directorio de trabajo ({root}); usa /save <ruta> dentro de él.", f"'{path}' is outside the working folder ({root}); use /save <path> inside it."))
     if target.is_dir():
-        raise ValueError(f"'{path}' es una carpeta.")
+        raise ValueError(T(f"'{path}' es una carpeta.", f"'{path}' is a folder."))
     return target
 
 

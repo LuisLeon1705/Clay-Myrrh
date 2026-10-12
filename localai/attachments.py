@@ -16,6 +16,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .i18n import T
+
 IMAGE_EXT = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tif", ".tiff"}
 TEXT_LIMIT = 400_000          # caracteres por archivo de texto
 MIN_PAGE_CHARS = 40           # menos que esto => página escaneada
@@ -48,7 +50,7 @@ def _pil():
         from PIL import Image
         return Image
     except ImportError:
-        raise AttachError("Falta Pillow para procesar imágenes: pip install pillow") from None
+        raise AttachError(T("Falta Pillow para procesar imágenes: pip install pillow", "Pillow is missing to process images: pip install pillow")) from None
 
 
 def image_from_bytes(data: bytes, name: str, max_side: int) -> dict:
@@ -58,7 +60,7 @@ def image_from_bytes(data: bytes, name: str, max_side: int) -> dict:
         im = Image.open(io.BytesIO(data))
         im.load()
     except Exception as e:
-        raise AttachError(f"No se pudo abrir la imagen {name}: {e}") from None
+        raise AttachError(T(f"No se pudo abrir la imagen {name}: {e}", f"Could not open the image {name}: {e}")) from None
     if getattr(im, "n_frames", 1) > 1:
         im.seek(0)
     if im.mode not in ("RGB", "L"):
@@ -95,7 +97,7 @@ def load_image(path: Path, max_side: int) -> Attachment:
 def load_text(path: Path) -> Attachment:
     raw = path.read_bytes()
     if b"\x00" in raw[:4096]:
-        raise AttachError(f"{path.name} parece binario; solo se adjuntan textos, imágenes y PDFs.")
+        raise AttachError(T(f"{path.name} parece binario; solo se adjuntan textos, imágenes y PDFs.", f"{path.name} looks binary; only text, images and PDFs can be attached."))
     text = raw.decode("utf-8", errors="replace")
     note = ""
     if len(text) > TEXT_LIMIT:
@@ -123,14 +125,14 @@ def load_pdf(path: Path, *, vision: bool, mode: str = "auto", max_pages: int = 3
     try:
         import pymupdf
     except ImportError:
-        raise AttachError("Falta PyMuPDF para leer PDFs: pip install pymupdf") from None
+        raise AttachError(T("Falta PyMuPDF para leer PDFs: pip install pymupdf", "PyMuPDF is missing to read PDFs: pip install pymupdf")) from None
     try:
         doc = pymupdf.open(str(path))
     except Exception as e:
-        raise AttachError(f"No se pudo abrir el PDF: {e}") from None
+        raise AttachError(T(f"No se pudo abrir el PDF: {e}", f"Could not open the PDF: {e}")) from None
     total = len(doc)
     if doc.needs_pass:
-        raise AttachError("El PDF está protegido con contraseña.")
+        raise AttachError(T("El PDF está protegido con contraseña.", "The PDF is password-protected."))
     idx = _parse_pages(pages, total) if pages else list(range(total))
     att = Attachment(path.name, str(path), "pdf")
     texts, scanned, skipped = [], [], 0
@@ -149,27 +151,29 @@ def load_pdf(path: Path, *, vision: bool, mode: str = "auto", max_pages: int = 3
     notes = []
     if texts:
         att.text = f"[Contenido de texto de '{path.name}' ({total} págs.)]\n" + "\n\n".join(texts)
-        notes.append(f"{len(texts)} pág. de texto")
+        notes.append(T(f"{len(texts)} pág. de texto", f"{len(texts)} text page(s)"))
     if skipped:
-        notes.append(f"{skipped} pág. de texto omitidas (límite {max_pages}, usa /set pdf_max_pages)")
+        notes.append(T(f"{skipped} pág. de texto omitidas (límite {max_pages}, usa /set pdf_max_pages)", f"{skipped} text page(s) skipped (limit {max_pages}, use /set pdf_max_pages)"))
     if scanned:
         if not vision:
             doc.close()
             if not texts:
                 raise AttachError(
-                    f"'{path.name}' es un PDF escaneado ({len(scanned)} pág. sin texto) y el modelo actual "
-                    f"no tiene visión. Cambia a un modelo con visión (/model) o instala su mmproj (/doctor).")
-            notes.append(f"{len(scanned)} pág. escaneadas IGNORADAS (el modelo no tiene visión)")
+                    T(f"'{path.name}' es un PDF escaneado ({len(scanned)} pág. sin texto) y el modelo actual "
+                    f"no tiene visión. Cambia a un modelo con visión (/model) o instala su mmproj (/doctor).", f"'{path.name}' is a scanned PDF ({len(scanned)} page(s) without text) and the current model "
+                    f"has no vision. Switch to a model with vision (/model) or install its mmproj (/doctor)."))
+            notes.append(T(f"{len(scanned)} pág. escaneadas IGNORADAS (el modelo no tiene visión)", f"{len(scanned)} scanned page(s) IGNORED (the model has no vision)"))
         else:
             use = scanned[:max_image_pages]
             for i in use:
                 pix = doc[i].get_pixmap(dpi=150)
                 img = image_from_bytes(pix.tobytes("png"), f"{path.name} p.{i + 1}", max_side)
                 att.images.append(img)
-            notes.append(f"{len(use)} pág. escaneadas como imagen")
+            notes.append(T(f"{len(use)} pág. escaneadas como imagen", f"{len(use)} scanned page(s) as images"))
             if len(scanned) > len(use):
-                notes.append(f"{len(scanned) - len(use)} escaneadas omitidas (límite {max_image_pages}, "
-                             f"usa /set pdf_max_image_pages o /pdf ruta páginas 5-9)")
+                notes.append(T(f"{len(scanned) - len(use)} escaneadas omitidas (límite {max_image_pages}, "
+                             f"usa /set pdf_max_image_pages o /pdf ruta páginas 5-9)", f"{len(scanned) - len(use)} scanned page(s) skipped (limit {max_image_pages}, "
+                             f"use /set pdf_max_image_pages or /pdf path pages 5-9)"))
     doc.close()
     att.note = ", ".join(notes)
     return att
@@ -180,17 +184,18 @@ def load_any(path_str: str, *, vision: bool, settings, pdf_mode: str = "auto", p
     if not path.is_absolute():
         path = Path.cwd() / path
     if not path.exists():
-        raise AttachError(f"No existe: {path}")
+        raise AttachError(T(f"No existe: {path}", f"Does not exist: {path}"))
     if path.is_dir():
-        raise AttachError(f"{path} es una carpeta; adjunta archivos concretos.")
+        raise AttachError(T(f"{path} es una carpeta; adjunta archivos concretos.", f"{path} is a folder; attach specific files."))
     ext = path.suffix.lower()
     if ext == ".pdf":
         return load_pdf(path, vision=vision, mode=pdf_mode, max_pages=settings.pdf_max_pages,
                         max_image_pages=settings.pdf_max_image_pages, max_side=settings.image_max_side, pages=pages)
     if ext in IMAGE_EXT:
         if not vision:
-            raise AttachError(f"El modelo actual no tiene visión: no puede ver '{path.name}'. "
-                              f"Usa /model para elegir uno con 👁 o /doctor para ver qué mmproj falta.")
+            raise AttachError(T(f"El modelo actual no tiene visión: no puede ver '{path.name}'. "
+                              f"Usa /model para elegir uno con 👁 o /doctor para ver qué mmproj falta.", f"The current model has no vision: it can't see '{path.name}'. "
+                              f"Use /model to pick one with 👁 or /doctor to see which mmproj is missing."))
         return load_image(path, settings.image_max_side)
     return load_text(path)
 

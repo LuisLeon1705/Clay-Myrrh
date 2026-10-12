@@ -37,6 +37,7 @@ from prompt_toolkit.lexers import Lexer
 from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import SearchToolbar
 
+from .i18n import T
 from .render import ThemeDef
 
 # E/S por defecto (las pruebas automáticas inyectan aquí una entrada simulada)
@@ -153,16 +154,15 @@ class LocalCompleter(Completer):
         spec = self.commands.get(cmd.lower())
         if spec is None:
             return
-        if spec.paths:
-            last = rest.split(" ")[-1] if rest.count(" ") else rest
-            yield from self._path(last.strip('"'), complete_event)
-            return
         if spec.choices:
-            # subcomando de 2º nivel (p. ej. "/chat load <nombre>")
+            # subcomando de 2º nivel (p. ej. "/chat load <nombre>"); en comandos con rutas, antes que las rutas
             q = rest.lower()
             for value, meta in spec.choices():
                 if value.lower().startswith(q) or (q and q in value.lower() and len(q) > 1):
                     yield Completion(value, -len(rest), display_meta=meta)
+        if spec.paths:
+            last = rest.split(" ")[-1] if rest.count(" ") else rest
+            yield from self._path(last.strip('"'), complete_event)
 
 
 class InputLexer(Lexer):
@@ -240,8 +240,9 @@ class InputBox:
     def __init__(self, commands: dict[str, CmdSpec], history_file: Path | None,
                  toolbar: Callable[[], tuple[StyleAndTextTuples, StyleAndTextTuples]], theme: ThemeDef,
                  on_copy: Callable[[], bool] | None = None, no_arg_cmds: set[str] | None = None,
-                 input=None, output=None):
+                 input=None, output=None, lang: str = "es"):
         enable_shift_enter()
+        self.lang = lang                       # es | en: textos de la caja y del panel de atajos
         self.commands = commands
         self.no_arg_cmds = no_arg_cmds or set()
         self.toolbar_fn = toolbar
@@ -253,8 +254,8 @@ class InputBox:
             hist = FileHistory(str(history_file)) if history_file else InMemoryHistory()
         except Exception:
             hist = InMemoryHistory()
-        self.search = SearchToolbar(text_if_not_searching="", backward_search_prompt="búsqueda (Ctrl+R): ",
-                                    forward_search_prompt="búsqueda: ")
+        self.search = SearchToolbar(text_if_not_searching="", backward_search_prompt=T("búsqueda (Ctrl+R): ", "search (Ctrl+R): "),
+                                    forward_search_prompt=T("búsqueda: ", "search: "))
         self.buffer = Buffer(multiline=True, history=hist, completer=LocalCompleter(commands),
                              complete_while_typing=True, auto_suggest=AutoSuggestFromHistory(),
                              enable_history_search=False)
@@ -264,7 +265,9 @@ class InputBox:
         control = BufferControl(
             buffer=self.buffer, search_buffer_control=self.search.control, lexer=InputLexer(),
             input_processors=[AppendAutoSuggestion(),
-                              Placeholder("Escribe tu mensaje o @ruta/al/archivo  ·  ? atajos")])
+                              Placeholder(lambda: "Type your message or @path/to/file  ·  ? shortcuts"
+                                          if self.lang == "en" else
+                                          "Escribe tu mensaje o @ruta/al/archivo  ·  ? atajos")])
 
         def prefix(lineno, wrap_count):
             return [("class:prompt", "› ")] if lineno == 0 and wrap_count == 0 else [("", "  ")]
@@ -346,12 +349,20 @@ class InputBox:
         return list(left) + [("class:toolbar", " " * max(1, width - n - rlen))] + list(right)
 
     def _keys(self) -> StyleAndTextTuples:
-        rows = [("Enter", "enviar"), ("Alt/Shift+Enter, Ctrl+J, \\+Enter", "nueva línea"),
-                ("/", "comandos"), ("@ruta", "adjuntar archivo, imagen o PDF"),
-                ("!cmd / !!cmd", "shell / shell + salida al contexto"), ("↑ ↓", "historial"),
-                ("Ctrl+R", "buscar en el historial"), ("→", "aceptar sugerencia gris"),
-                ("Esc", "cancelar la respuesta"), ("Ctrl+K", "copiar la última respuesta"),
-                ("Ctrl+L", "limpiar pantalla"), ("Ctrl+C ×2 / Ctrl+D", "salir")]
+        if self.lang == "en":
+            rows = [("Enter", "send"), ("Alt/Shift+Enter, Ctrl+J, \\+Enter", "new line"),
+                    ("/", "commands"), ("@path", "attach a file, image or PDF"),
+                    ("!cmd / !!cmd", "shell / shell + output to context"), ("↑ ↓", "history"),
+                    ("Ctrl+R", "search the history"), ("→", "accept the grey suggestion"),
+                    ("Esc", "cancel the answer"), ("Ctrl+K", "copy the last answer"),
+                    ("Ctrl+L", "clear the screen"), ("Ctrl+C ×2 / Ctrl+D", "quit")]
+        else:
+            rows = [("Enter", "enviar"), ("Alt/Shift+Enter, Ctrl+J, \\+Enter", "nueva línea"),
+                    ("/", "comandos"), ("@ruta", "adjuntar archivo, imagen o PDF"),
+                    ("!cmd / !!cmd", "shell / shell + salida al contexto"), ("↑ ↓", "historial"),
+                    ("Ctrl+R", "buscar en el historial"), ("→", "aceptar sugerencia gris"),
+                    ("Esc", "cancelar la respuesta"), ("Ctrl+K", "copiar la última respuesta"),
+                    ("Ctrl+L", "limpiar pantalla"), ("Ctrl+C ×2 / Ctrl+D", "salir")]
         out: StyleAndTextTuples = [("", "\n")]
         half = (len(rows) + 1) // 2
         for i in range(half):
@@ -406,7 +417,7 @@ class InputBox:
                 event.app.exit(result=None)
             else:
                 self._ctrl_c_at = now
-                self.notice("Pulsa Ctrl+C otra vez para salir (o escribe /exit)", 2.0)
+                self.notice(T("Pulsa Ctrl+C otra vez para salir (o escribe /exit)", "Press Ctrl+C again to quit (or type /exit)"), 2.0)
 
         @kb.add("c-d")
         def _ctrl_d(event):
@@ -423,9 +434,9 @@ class InputBox:
         @kb.add("c-k")
         def _copy(event):
             if self.on_copy and self.on_copy():
-                self.notice("✔ Última respuesta copiada al portapapeles")
+                self.notice(T("✔ Última respuesta copiada al portapapeles", "✔ Last answer copied to the clipboard"))
             else:
-                self.notice("No hay respuesta que copiar")
+                self.notice(T("No hay respuesta que copiar", "There is no answer to copy"))
 
         @kb.add("?", filter=Condition(lambda: not buf.text))
         def _keys(event):
@@ -456,7 +467,8 @@ class Choice:
 
 
 def select(title: str, choices: list[Choice], theme: ThemeDef, default: int = 0,
-           hint: str = "↑/↓ mover · Enter elegir · Esc cancelar", input=None, output=None) -> Any:
+           hint: str | None = None, input=None, output=None) -> Any:
+    hint = hint or T("↑/↓ mover · Enter elegir · Esc cancelar", "↑/↓ move · Enter choose · Esc cancel")
     if not choices:
         return None
     idx = [max(0, min(default, len(choices) - 1))]
@@ -521,9 +533,10 @@ def select(title: str, choices: list[Choice], theme: ThemeDef, default: int = 0,
 
 
 def select_multi(title: str, choices: list[Choice], theme: ThemeDef, preselected: set | None = None,
-                 hint: str = "↑/↓ mover · Espacio marcar · a todos · Enter confirmar · Esc cancelar",
-                 input=None, output=None) -> list | None:
+                 hint: str | None = None, input=None, output=None) -> list | None:
     """Selector de casillas: devuelve la lista de valores marcados (None si se cancela)."""
+    hint = hint or T("↑/↓ mover · Espacio marcar · a todos · Enter confirmar · Esc cancelar",
+                     "↑/↓ move · Space tick · a all · Enter confirm · Esc cancel")
     if not choices:
         return []
     idx = [0]

@@ -1,0 +1,120 @@
+<page title="Demo de componentes · Local AI" brand="Café Aurora" theme="minimal" accent="#b45309" font="Outfit" currency="€" description="Escaparate de los componentes prediseñados de Local AI"/>
+<banner text="☕ Esta es una página de demostración: todo lo que ves sale de etiquetas .lai" link="Ver la carta|#carta"/>
+<navbar brand="Café Aurora" logo="☕" cta="Reservar|#reservas"/>
+<hero title="Café de especialidad, tostado aquí" eyebrow="Demo de componentes" subtitle="Cada bloque de esta página es un componente prediseñado: la IA solo escribe el contenido." button="Ver la carta|#carta" button2="Reservar|#reservas" image="☕" align="left"/>
+<logos title="Nos han mencionado" variant="marquee">
+  <item>El Diario</item><item>Gastro+</item><item>Revista Café</item><item>Barista Hoy</item><item>Urbano</item><item>Sabores</item>
+</logos>
+<features id="nosotros" nav="Nosotros" title="Por qué somos distintos">
+  <item title="Tostado propio" image="🔥" eyebrow="Cada martes">Tostamos en pequeños lotes para que cada taza llegue en su punto.</item>
+  <item title="Leche y alternativas" image="🥛" button="Ver la carta|#carta">Avena, almendra y soja sin coste extra.</item>
+</features>
+<stats>
+  <item value="12" suffix="">orígenes distintos</item><item value="3400" suffix="+">cafés al mes</item><item value="4.9" suffix="★">valoración media</item>
+</stats>
+<menu id="carta" nav="Carta" title="Nuestra carta" currency="€">
+  <item name="Espresso" price="1.80" category="Cafés" image="☕">Doble, de nuestro blend Aurora.</item>
+  <item name="Flat white" price="3.20" category="Cafés" tags="Favorito" image="🥛">Leche texturizada y doble ristretto.</item>
+  <item name="Té matcha" price="3.50" category="Tés" tags="Vegano" image="🍵">Matcha ceremonial batido a mano.</item>
+  <item name="Tarta de queso" price="4.20" category="Postres" image="🍰">Horneada cada mañana.</item>
+</menu>
+<hours id="horario" nav="Horario" title="Horario" note="Festivos: de 10:00 a 14:00">
+  <item day="Lunes a viernes" hours="7:30-20:00"/>
+  <item day="Sábado" hours="9:00-14:00, 16:00-21:00"/>
+  <item day="Domingo" closed="yes"/>
+</hours>
+<tabs id="servicios" title="Servicios">
+  <item title="Para llevar" icon="🥤">Pide en la barra o por WhatsApp y recógelo en 5 minutos.</item>
+  <item title="Eventos" icon="🎉">Cerramos el local para grupos de hasta 30 personas.</item>
+  <item title="Cursos" icon="🎓">Cata y latte art los sábados por la tarde.</item>
+</tabs>
+<carousel title="El local" autoplay="5">
+  <item title="La barra" image="☕">Donde ocurre la magia.</item>
+  <item title="La terraza" image="🌿">Con sombra todo el día.</item>
+  <item title="El tostador" image="🔥" button="Visítanos|#ubicacion">Ven a verlo los martes.</item>
+</carousel>
+<beforeafter title="Antes y después de la reforma" before="🏚️" after="🏡" label-before="2024" label-after="2026">El local pasó de almacén a cafetería en seis meses.</beforeafter>
+<team id="equipo" title="El equipo">
+  <item name="Lucía Pérez" role="Barista jefa" links="Instagram|https://instagram.com">Campeona regional 2025.</item>
+  <item name="Marco Díaz" role="Tostador" image="🧑‍🍳">Diez años tostando.</item>
+  <item name="Sara Gil" role="Repostera">Sus tartas vuelan.</item>
+</team>
+<pricing id="bonos" nav="Bonos" title="Bonos de café" currency="€" yearly-label="Anual (2 meses gratis)">
+  <item name="Básico" price="25" yearly="250" period="/mes" features="10 cafés; Leche vegetal">Para probar.</item>
+  <item name="Plus" price="49" yearly="490" period="/mes" featured="yes" badge="Popular" features="25 cafés; Leche vegetal; 10% en granos">El favorito.</item>
+  <item name="Ilimitado" price="89" yearly="890" period="/mes" features="Sin límite; 20% en granos">Para los de siempre.</item>
+</pricing>
+<compare title="Comparativa de bonos" columns="Básico, Plus, Ilimitado" highlight="Plus">
+  <row>Cafés al mes | 10 | 25 | Sin límite</row>
+  <row>Leche vegetal | sí | sí | sí</row>
+  <row>Descuento en granos | no | 10% | 20%</row>
+</compare>
+<chart title="Ventas por categoría" type="donut" unit="%">
+  <item value="55">Cafés</item><item value="20">Tés</item><item value="25">Postres</item>
+</chart>
+<chart title="Visitas por mes" type="line">
+  <item value="820">Jun</item><item value="940">Jul</item><item value="760">Ago</item><item value="1180">Sep</item><item value="1320">Oct</item>
+</chart>
+<calculator id="calculadora" title="¿Cuánto ahorras con un bono?" formula="max(0, cafes * precio - bono)" result="Ahorro al mes" unit="€" decimals="2">
+  <item name="cafes" label="Cafés al mes" value="25" min="0"/>
+  <item name="precio" label="Precio por café" value="3.20" step="0.1"/>
+  <item name="bono" label="Bono" options="Básico (25 €):25|Plus (49 €):49|Ilimitado (89 €):89"/>
+</calculator>
+<quiz id="test" title="¿Cuánto sabes de café?">
+  <item q="¿A qué temperatura se prepara un buen café de filtro?" options="70 °C; 92 °C; 100 °C" answer="2" explain="Entre 90 y 96 °C se extrae bien sin amargar."/>
+  <item q="¿Qué es un ristretto?" options="Un espresso corto; Un café con leche; Un té" answer="1" explain="Menos agua y más concentrado."/>
+</quiz>
+<poll id="encuesta" title="¿Cuál es tu café favorito?">
+  <item votes="14">Espresso</item><item votes="22">Flat white</item><item votes="9">Cold brew</item>
+</poll>
+<countdown title="Gran apertura de la terraza" to="2026-12-31T18:00" text="Música en vivo y degustación." button="Apúntate|#reservas"/>
+<wizard id="reservas" nav="Reservas" title="Reserva tu mesa" button="Confirmar reserva" ok="¡Reserva recibida!">
+  <item title="Cuándo" fields="fecha:fecha*, hora:hora*, personas:numero*"/>
+  <item title="Dónde" fields="zona:Interior|Terraza*, trona:check"/>
+  <item title="Tus datos" fields="nombre:texto*, email:email*, comentarios:area"/>
+</wizard>
+<calendar id="agenda" title="Catas y eventos" month="2026-10">
+  <item date="2026-10-15" time="18:00">Cata de Etiopía</item>
+  <item date="2026-10-15" time="20:00" color="#16a34a">Taller de latte art</item>
+  <item date="2026-10-24">Mercado de productores</item>
+</calendar>
+<progress title="Campaña: café para el comedor social" currency="€" button="Colaborar|#contacto">
+  <item goal="5000" current="3650" deadline="Hasta el 31 de diciembre">Recaudado</item>
+  <item goal="1000" current="420" deadline="Meta: 1.000 cafés">Cafés donados</item>
+</progress>
+<kanban id="pedidos" title="Pedidos de granos" columns="Recibido, Tostando, Listo">
+  <item col="Recibido" tag="1 kg">Colombia Huila</item>
+  <item col="Tostando">Etiopía Yirgacheffe</item>
+</kanban>
+<todo id="apertura" title="Checklist de apertura">
+  <item done="yes">Calibrar el molino</item><item>Purgar la máquina</item>
+</todo>
+<expenses id="caja" title="Caja del mes" currency="€" categories="Café verde, Leche, Local, Personal, Otros">
+  <item type="ingreso" category="Otros" amount="6200">Ventas de septiembre</item>
+  <item category="Local" amount="1100">Alquiler</item>
+  <item category="Café verde" amount="840">Pedido de granos</item>
+</expenses>
+<invoice id="presupuesto" title="Presupuesto de evento" number="P-2026-014" client="Estudio Lumen" date="11/10/2026" currency="€" tax="21" notes="Validez: 30 días. Incluye montaje y recogida.">
+  <row>Barra de café (4 horas) | 1 | 380</row>
+  <row>Cafés de especialidad | 60 | 2.5</row>
+  <row>Repostería variada | 30 | 3.2</row>
+</invoice>
+<login id="socios" title="Área de socios" subtitle="Consulta tus bonos" redirect="#bonos"/>
+<modal button="Ver condiciones de los bonos" title="Condiciones">- Los bonos son personales e intransferibles.
+- Los cafés no consumidos no se acumulan al mes siguiente.
+- Puedes cancelar cuando quieras desde el área de socios.</modal>
+<faq title="Preguntas frecuentes">
+  <item q="¿Tenéis opciones sin lactosa?">Sí: avena, almendra y soja, sin coste extra.</item>
+  <item q="¿Se puede trabajar con portátil?">Claro, hay wifi y enchufes en todas las mesas.</item>
+</faq>
+<map id="ubicacion" nav="Dónde" title="Dónde estamos" lat="40.4168" lon="-3.7038" zoom="16" address="Puerta del Sol, Madrid">A 2 minutos del metro **Sol**.</map>
+<newsletter title="Novedades cada mes" text="Nuevos orígenes y eventos, sin spam."/>
+<contact id="contacto" title="Escríbenos" email="hola@cafeaurora.es" phone="+34 600 123 456" fields="nombre, email, mensaje"/>
+<footer brand="Café Aurora" text="Demo de componentes de Local AI" email="hola@cafeaurora.es"/>
+<float whatsapp="34600123456" message="Hola, quería reservar" theme="yes" top="yes"/>
+<chatbot name="Aurora" greeting="¡Hola! Soy el asistente de la cafetería. ¿Qué quieres saber?" fallback="No tengo esa respuesta; escríbenos en el formulario de contacto.">
+  <item q="horario, abierto, abris, cierra, hora" label="Horario">De lunes a viernes de 7:30 a 20:00 y los sábados de 9:00 a 21:00.</item>
+  <item q="reserva, reservar, mesa" label="Reservar">Puedes reservar en la sección «Reserva tu mesa», más arriba.</item>
+  <item q="leche, vegana, lactosa, avena" label="Sin lactosa">Tenemos avena, almendra y soja sin coste extra.</item>
+</chatbot>
+<cookies text="Esta demo solo guarda tus preferencias en tu navegador." link="Más información|#contacto"/>

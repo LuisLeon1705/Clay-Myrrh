@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="setup-token" content="{{TOKEN}}">
+<title>Local AI · Asistente de instalación</title>
+<link rel="stylesheet" href="setup.css">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">◆</span> Local AI <small>asistente de instalación</small></div>
+  <nav class="tabs" id="tabs" aria-label="Secciones">
+    <button type="button" class="on" data-view="install" aria-current="page">🧭 Instalación</button>
+    <button type="button" data-view="compare">⚖️ Comparativa</button>
+    <button type="button" data-view="components">🧱 Componentes</button>
+  </nav>
+  <ol class="stepper" id="stepper"></ol>
+  <button class="btn primary small" id="open-guide" type="button">▶ Guía</button>
+  <button class="link" id="open-glossary" type="button">📖 Glosario</button>
+</header>
+
+<main id="app">
+  <!-- 0 · Bienvenida -->
+  <section class="step" data-step="0">
+    <div class="hero">
+      <div>
+        <span class="eyebrow">Bienvenido</span>
+        <h1>Tu propia IA, funcionando en tu ordenador</h1>
+        <p class="lead">En unos minutos te recomiendo qué modelos instalar según <b>tu equipo</b> y <b>para qué los
+          quieres</b>, te explico qué esperar de cada uno y lo dejo todo descargado y configurado.</p>
+        <div class="callout warn" id="engine-warning" hidden>
+          <b>Falta el motor de IA (llama-cpp-python).</b> El asistente funciona igual, pero para usar los modelos
+          después tendrás que instalarlo: <code>pip install llama-cpp-python</code> (CPU o Vulkan) o una versión
+          CUDA si tienes tarjeta NVIDIA.
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="chip-art"><span>🧠</span></div>
+      </div>
+    </div>
+    <div class="guide-cta" id="guide-cta">
+      <div class="guide-cta-mascots" aria-hidden="true"></div>
+      <div><b>Antes de instalar: ¿local o nube?</b><br><span class="muted small">Guía rápida en 11 pasos: Claude, Gemini,
+        Codex y tu IA local cara a cara, cuánto cuesta igualarlas y para qué sirve de verdad una IA en tu PC.</span></div>
+      <button class="btn primary" type="button" data-open-guide>▶ Ver la guía</button>
+      <button class="link small" type="button" data-view-go="compare">Ver la comparativa →</button>
+    </div>
+    <div class="grid3">
+      <div class="card feature"><div class="ficon">🔒</div><h3>Privada</h3><p>Tus textos, documentos y fotos no salen de tu ordenador.</p></div>
+      <div class="card feature"><div class="ficon">💸</div><h3>Sin cuotas</h3><p>Una vez descargada, úsala todo lo que quieras sin pagar por uso.</p></div>
+      <div class="card feature"><div class="ficon">📡</div><h3>Sin internet</h3><p>Funciona sin conexión; internet solo hace falta para descargarla.</p></div>
+    </div>
+    <div class="card">
+      <h3>Lo que vamos a hacer</h3>
+      <ol class="howto">
+        <li><b>Ver tu equipo.</b> La memoria de tu tarjeta gráfica y de tu ordenador decide qué modelos caben y a qué velocidad.</li>
+        <li><b>Elegir para qué la quieres.</b> No es lo mismo escribir relatos que programar o leer documentos escaneados.</li>
+        <li><b>Escoger el nivel.</b> Para cada uso te enseño tres opciones (rápida, equilibrada y máxima calidad) con su velocidad real aproximada.</li>
+        <li><b>Descargar y listo.</b> Bajo los modelos y dejo la configuración preparada.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 1 · Tu equipo -->
+  <section class="step" data-step="1" hidden>
+    <h2>Tu equipo</h2>
+    <p class="lead">Lo he detectado automáticamente. Si algo no es correcto puedes cambiarlo, o <b>simular otro
+      equipo</b> (por ejemplo, para aconsejar a alguien o antes de comprar).</p>
+    <div class="two">
+      <div class="card">
+        <div class="row between"><h3>Datos</h3>
+          <select id="preset" aria-label="Simular otro equipo"><option value="">Simular otro equipo…</option></select>
+        </div>
+        <div class="hwgrid" id="hw-form"></div>
+        <button class="link small" id="hw-reset" type="button">↺ Volver a lo detectado</button>
+      </div>
+      <div class="card">
+        <h3>Cómo influye en la velocidad <button class="info" data-term="bandwidth" type="button">?</button></h3>
+        <p class="muted small">Para escribir cada palabra la IA tiene que «leer» el modelo entero de la memoria.
+          Cuanto más ancho el carril, más rápido escribe.</p>
+        <div id="lanes"></div>
+        <div class="class-badge" id="hw-class"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>¿Qué velocidad es «rápida»? <button class="info" data-term="token" type="button">?</button></h3>
+      <p class="muted small">La velocidad se mide en <b>tokens por segundo</b> (un token ≈ ¾ de palabra). Pulsa para sentir la diferencia:</p>
+      <div class="demo-buttons" id="demo-buttons"></div>
+      <div class="typing" id="demo-box" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- 2 · Usos -->
+  <section class="step" data-step="2" hidden>
+    <h2>¿Para qué quieres la IA?</h2>
+    <p class="lead">Marca todo lo que te interese. Para cada uso buscaré el modelo que mejor encaja con tu equipo.</p>
+    <div class="cats" id="cats"></div>
+  </section>
+
+  <!-- 3 · Niveles -->
+  <section class="step" data-step="3" hidden>
+    <h2>Elige el nivel de cada uso</h2>
+    <div class="tier-legend" id="tier-legend"></div>
+    <div id="levels"></div>
+  </section>
+
+  <!-- 4 · Resumen -->
+  <section class="step" data-step="4" hidden>
+    <h2>Resumen</h2>
+    <div class="two">
+      <div class="card">
+        <h3>Tu selección</h3>
+        <div id="sum-choices"></div>
+        <h3 style="margin-top:1.4rem">¿Cuál será tu uso principal?</h3>
+        <p class="muted small">Es el modelo que se carga al abrir Local AI. Los demás se activan con <code>/modo</code>.</p>
+        <div id="sum-primary" class="radios"></div>
+      </div>
+      <div class="card">
+        <h3>Descarga</h3>
+        <div id="sum-files" class="files"></div>
+        <div id="sum-disk"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · Descarga -->
+  <section class="step" data-step="5" hidden>
+    <h2>Descargando</h2>
+    <p class="lead" id="dl-message">Preparando…</p>
+    <div class="card">
+      <div class="bigbar"><span id="dl-bar"></span></div>
+      <div class="row between small muted"><span id="dl-bytes"></span><span id="dl-speed"></span><span id="dl-eta"></span></div>
+      <div id="dl-files" class="files" style="margin-top:1rem"></div>
+    </div>
+    <p class="muted small">Puedes pausar: lo descargado se conserva y se reanuda la próxima vez.</p>
+  </section>
+
+  <!-- 6 · Listo -->
+  <section class="step" data-step="6" hidden>
+    <div class="done">
+      <div class="done-icon">🎉</div>
+      <h2>¡Todo listo!</h2>
+      <p class="lead" id="done-text"></p>
+    </div>
+    <div class="grid3" id="cheats"></div>
+  </section>
+</main>
+
+<main id="view-compare" class="view" hidden></main>
+<main id="view-components" class="view" hidden></main>
+
+<footer class="nav">
+  <button class="btn ghost" id="back" type="button">← Atrás</button>
+  <span class="muted small" id="nav-hint"></span>
+  <button class="btn primary" id="next" type="button">Empezar →</button>
+</footer>
+
+<aside class="drawer" id="glossary" aria-label="Glosario" hidden>
+  <div class="row between"><h3>Glosario</h3><button class="link" id="close-glossary" type="button">✕</button></div>
+  <dl id="glossary-list"></dl>
+</aside>
+<div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+<div class="guide" id="guide" role="dialog" aria-modal="true" aria-label="Guía: IA local o en la nube" hidden></div>
+<script src="setup.js"></script>
+<script src="guide.js"></script>
+</body>
+</html>

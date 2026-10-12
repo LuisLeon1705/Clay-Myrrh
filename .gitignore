@@ -1,0 +1,47 @@
+# --- Modelos de IA (pesan GB: nunca al repositorio; models/ y samples/ tienen su propio .gitignore) ---
+*.gguf
+*.gguf.part
+*.safetensors
+*.bin
+*.part
+*.onnx
+*.pt
+*.pth
+*.ckpt
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Copias y temporales ---
+*.bak
+*.tmp
+*.log
+crash.log
+
+# --- Salidas que deja el modelo o las pruebas en la raíz (las de verdad van a ~/.local_ai/) ---
+/pagina.*
+/respuesta.*
+/index.html
+/css/
+/js/
+/documentos/
+
+# --- Editores y sistema ---
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# --- Configuración local de agentes ---
+.claude/settings.local.json
+.gemini/

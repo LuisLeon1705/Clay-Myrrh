@@ -1,0 +1,8 @@
+# Dependencias de Local AI (el motor llama-cpp-python se instala aparte: ver LEEME.md / local-ai --setup)
+rich>=13
+prompt_toolkit>=3.0.40
+requests>=2.31
+psutil>=5.9
+pymupdf>=1.24
+pillow>=10
+nvidia-ml-py>=12

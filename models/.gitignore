@@ -1,0 +1,5 @@
+# Solo se versiona la estructura de carpetas: los modelos se descargan aparte.
+*
+!.gitignore
+!*/
+!*/.gitkeep

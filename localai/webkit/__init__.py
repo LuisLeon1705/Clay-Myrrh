@@ -318,5 +318,5 @@ EXAMPLE = """<page title="Estudio Lumen" theme="minimal" accent="#0f766e" font="
 <faq id="faq" nav="FAQ" title="Preguntas frecuentes">
   <item q="¿Necesito experiencia?">No, adaptamos cada postura a tu nivel.</item>
 </faq>
-<contact id="contacto" nav="Contacto" title="Reserva tu clase gratis" email="hola@estudiolumen.es" address="C/ Colón 12, Valencia" hours="L–V 7:00–21:00"/>
+<contact id="contacto" nav="Contacto" title="Reserva tu clase gratis" email="hola@estudiolumen.example" address="C/ Colón 12, Valencia" hours="L–V 7:00–21:00"/>
 <footer brand="Estudio Lumen" text="Yoga y pilates en el centro de Valencia"/>"""

@@ -109,9 +109,9 @@
 </faq>
 <map id="ubicacion" nav="Dónde" title="Dónde estamos" lat="40.4168" lon="-3.7038" zoom="16" address="Puerta del Sol, Madrid">A 2 minutos del metro **Sol**.</map>
 <newsletter title="Novedades cada mes" text="Nuevos orígenes y eventos, sin spam."/>
-<contact id="contacto" title="Escríbenos" email="hola@cafeaurora.es" phone="+34 600 123 456" fields="nombre, email, mensaje"/>
-<footer brand="Café Aurora" text="Demo de componentes de Clay-Myrrh" email="hola@cafeaurora.es"/>
-<float whatsapp="34600123456" message="Hola, quería reservar" theme="yes" top="yes"/>
+<contact id="contacto" title="Escríbenos" email="hola@cafeaurora.example" phone="+34 000 000 000" fields="nombre, email, mensaje"/>
+<footer brand="Café Aurora" text="Demo de componentes de Clay-Myrrh" email="hola@cafeaurora.example"/>
+<float whatsapp="34000000000" message="Hola, quería reservar" theme="yes" top="yes"/>
 <chatbot name="Aurora" greeting="¡Hola! Soy el asistente de la cafetería. ¿Qué quieres saber?" fallback="No tengo esa respuesta; escríbenos en el formulario de contacto.">
   <item q="horario, abierto, abris, cierra, hora" label="Horario">De lunes a viernes de 7:30 a 20:00 y los sábados de 9:00 a 21:00.</item>
   <item q="reserva, reservar, mesa" label="Reservar">Puedes reservar en la sección «Reserva tu mesa», más arriba.</item>

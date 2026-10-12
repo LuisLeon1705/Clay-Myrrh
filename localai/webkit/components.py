@@ -838,7 +838,7 @@ def r_sidebar(n, ctx):
 # ---------------------------------------------------------------------------
 
 @comp("contact", "Contacto: datos + formulario con validación (guarda en el navegador y abre el correo si pones email).",
-      'id="contacto" nav="Contacto" title="…" subtitle="…" email="hola@ejemplo.com" phone="…" address="…" hours="…" '
+      'id="contacto" nav="Contacto" title="…" subtitle="…" email="hola@…" phone="…" address="…" hours="…" '
       'whatsapp="58412…" fields="nombre, email, telefono, mensaje" button="Enviar"', "", css="""
 .contact-inner { display: grid; grid-template-columns: .85fr 1.15fr; gap: 2.5rem; align-items: start; }
 .contact-info { display: grid; gap: 1rem; }
@@ -1700,7 +1700,7 @@ def r_expenses(n, ctx):
 
 
 @comp("float", "Botones flotantes: WhatsApp, volver arriba y modo claro/oscuro.",
-      'whatsapp="34600123456" message="Hola, quería información" top="yes" theme="yes"', "", section=False, css="""
+      'whatsapp="34…" message="Hola, quería información" top="yes" theme="yes"', "", section=False, css="""
 .float-btns { position: fixed; right: 1rem; bottom: 1rem; z-index: 70; display: grid; gap: .6rem; }
 .float-btns a, .float-btns button { width: 52px; height: 52px; border-radius: 50%; border: 0; display: grid; place-items: center; font-size: 1.4rem;
   cursor: pointer; box-shadow: 0 10px 28px -10px rgba(0,0,0,.45); text-decoration: none !important; background: var(--card); color: var(--text); }

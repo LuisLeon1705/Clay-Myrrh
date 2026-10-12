@@ -67,6 +67,14 @@ Cada respuesta reserva un 15 % de `/tokens` (ajustable 10–25 % en `/settings`)
 - Prueba simulada (RX 6800 + integrada de 512 MB): 33/33 capas del 9B en GPU, 25/41 del 35B MoE; `/doctor`
   explica cómo conseguir el motor Vulkan si el instalado es solo CPU. La RTX 3070 real sigue por NVML.
 
+## Capas reales en la GPU (octubre 2026)
+- Caso real: RX 6800 con todo en RAM y ~1 GB de VRAM al cargar Qwen 27B/30B. Querencia mostraba las capas
+  *planificadas* y además guardaba una calibración falsa (0,8). Ahora lee el log de llama.cpp
+  (`ggml_vulkan: … uma`, `using device … MiB free`, `offloaded N/M layers`): el mensaje de «listo» muestra las
+  capas reales y, si quedaron muchas menos de las previstas, explica la causa (motor solo CPU → cómo conseguir
+  Vulkan; Vulkan que solo ve la integrada → controlador / GGML_VK_VISIBLE_DEVICES; poca VRAM libre). Si el
+  motor es solo CPU, avisa también antes de cargar.
+
 ## Querencia: nombre e icono (octubre 2026)
 - El proyecto pasa a llamarse **Querencia** («tu IA, en casa»), versión 4.0. Lanzador `querencia.cmd`
   (con `local-ai.cmd` como alias), instalador `instalar-querencia.bat` y accesos directos con icono.

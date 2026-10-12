@@ -26,7 +26,7 @@ from typing import Any, Iterator
 
 from . import llamalog
 from .catalog import ModelEntry
-from .memory import KV_GGML_TYPE, RealUsage, parse_buffer_logs, probe
+from .memory import KV_GGML_TYPE, DeviceLog, RealUsage, parse_buffer_logs, parse_device_logs, probe
 
 _llama_mod = None
 
@@ -328,6 +328,7 @@ class LlamaEngine:
 
         self.load_time = time.time() - t0
         self.real: RealUsage = parse_buffer_logs(llamalog.since(pos))
+        self.devlog: DeviceLog = parse_device_logs(llamalog.since(pos))     # capas reales en GPU, dispositivos
         m1 = probe()
         self.real.vram_delta = (None if m0.free_estimated or not m0.vram_total
                                 else max(0, m0.vram_free - m1.vram_free))

@@ -473,6 +473,42 @@ def parse_buffer_logs(lines: list[str]) -> RealUsage:
     return ru
 
 
+@dataclass
+class DeviceLog:
+    """Lo que llama.cpp dice en su log sobre dónde ha puesto el modelo."""
+    devices: list[tuple[str, bool]] = field(default_factory=list)   # (nombre, integrada/UMA) que ve el backend GPU
+    used: str = ""                     # dispositivo que usa el modelo
+    free_mib: int | None = None        # VRAM libre según llama.cpp al cargar
+    offloaded: int | None = None       # capas subidas a la GPU (incluida la de salida)
+    total: int | None = None
+
+    @property
+    def gpu_backend(self) -> bool:
+        return bool(self.devices)
+
+
+def parse_device_logs(lines: list[str]) -> DeviceLog:
+    import re
+    d = DeviceLog()
+    for ln in lines:
+        m = re.search(r"ggml_vulkan:\s*\d+\s*=\s*(.+?)\s*\|\s*uma:\s*(\d)", ln)
+        if m:
+            d.devices.append((m.group(1).strip(), m.group(2) == "1"))
+            continue
+        m = re.search(r"Device\s+\d+:\s*(.+?),\s*compute capability", ln)          # CUDA
+        if m:
+            d.devices.append((m.group(1).strip(), False))
+            continue
+        m = re.search(r"using device (\S+) \(([^)]*)\).*?-\s*(\d+)\s*MiB free", ln)
+        if m:
+            d.used, d.free_mib = f"{m.group(1)} ({m.group(2)})", int(m.group(3))
+            continue
+        m = re.search(r"offloaded (\d+)/(\d+) layers to GPU", ln)
+        if m:
+            d.offloaded, d.total = int(m.group(1)), int(m.group(2))
+    return d
+
+
 def fmt_bytes(b: float, unit: str = "auto") -> str:
     if unit == "G" or (unit == "auto" and abs(b) >= GiB):
         return f"{b / GiB:.2f} GB"

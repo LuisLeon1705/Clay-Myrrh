@@ -412,6 +412,58 @@ class App:
         say(f"[dim]{escape(question)} → {'Sí' if ans else 'No'}[/]")
         return bool(ans)
 
+    def _engine_gpu_capable(self) -> bool | None:
+        try:
+            from .engine import llama
+            return bool(llama().llama_supports_gpu_offload())
+        except Exception:
+            return None
+
+    def _warn_cpu_only_engine(self, plan: LoadPlan):
+        """El plan quiere capas en la GPU pero el motor instalado no sabe usarla: avisar antes de cargar."""
+        if plan.ngl <= 0 or self._engine_gpu_capable() is not False:
+            return
+        from . import gpu as gpumod
+        sm = plan.sysmem
+        summary, steps = gpumod.engine_advice(sm.vendor)
+        warn(f"Este llama-cpp-python es solo CPU: {plan.entry.name} irá entero a la RAM aunque tengas "
+             f"{sm.gpu_name or 'GPU'} ({render.gb(sm.vram_total)} GB). " + summary,
+             )
+        for st in steps:
+            say(f"   [dim]→[/] {escape(st)}")
+
+    def _offload_mismatch(self, plan: LoadPlan, eng) -> bool:
+        """¿llama.cpp puso en la GPU mucho menos de lo planificado?"""
+        if not plan or plan.ngl <= 0:
+            return False
+        dl = getattr(eng, "devlog", None)
+        if dl is not None and dl.offloaded is not None:
+            return dl.offloaded < max(1, plan.ngl // 2)
+        expected = plan.est.weights_gpu
+        return bool(expected) and eng.real.gpu < expected * 0.25
+
+    def _explain_offload(self, plan: LoadPlan, eng):
+        from . import gpu as gpumod
+        dl, sm = eng.devlog, plan.sysmem
+        got = dl.offloaded if dl.offloaded is not None else 0
+        warn(f"llama.cpp ha dejado el modelo casi entero en la CPU: {got} de {plan.ngl} capas previstas en la GPU "
+             f"({render.gb(eng.real.gpu)} GB de VRAM). Irá mucho más lento de lo estimado.")
+        if not dl.gpu_backend or self._engine_gpu_capable() is False:
+            summary, steps = gpumod.engine_advice(sm.vendor)
+            say(f"   [dim]Causa:[/] el llama-cpp-python instalado no tiene backend GPU (versión solo CPU). {escape(summary)}")
+            for st in steps:
+                say(f"   [dim]→[/] {escape(st)}")
+        elif all(uma for _, uma in dl.devices) and sm.vram_total:
+            names = ", ".join(n for n, _ in dl.devices)
+            say(f"   [dim]Causa:[/] llama.cpp solo ve la gráfica integrada ({escape(names)}), no tu {escape(sm.gpu_name)}.")
+            say("   [dim]→[/] Instala o actualiza el controlador de la tarjeta (incluye Vulkan) y reinicia.")
+            say("   [dim]→[/] Si aparecen varias, elige la dedicada con la variable de entorno GGML_VK_VISIBLE_DEVICES=<nº>.")
+        else:
+            free = f"{dl.free_mib} MiB libres" if dl.free_mib is not None else "poca VRAM libre"
+            say(f"   [dim]Causa probable:[/] llama.cpp veía {free} en {escape(dl.used or 'la GPU')} al cargar "
+                "(otros programas la ocupan, o el controlador informa de menos memoria).")
+            say("   [dim]→[/] Cierra juegos y programas que usen la GPU y prueba /gpu auto · /doctor para revisar.")
+
     def check_plan(self, plan: LoadPlan, interactive: bool = True) -> bool:
         """Si no cabe: muestra la estimación, avisa, sugiere y pide confirmación."""
         if plan.fits_vram and plan.fits_ram:
@@ -442,6 +494,7 @@ class App:
                     self.engine = OllamaEngine(entry.name, OLLAMA_HOST, ctx)
             else:
                 assert plan is not None
+                self._warn_cpu_only_engine(plan)
                 with console.status(f"[accent]Cargando {entry.name} (ctx {plan.n_ctx}, gpu {plan.ngl}, kv {self.s.kv_type})…[/]",
                                     spinner="dots"):
                     self.engine = LlamaEngine(entry, plan.n_ctx, plan.ngl, self.s.kv_type, self.s.swa_full,
@@ -463,13 +516,18 @@ class App:
         eng = self.engine
         if isinstance(eng, LlamaEngine):
             real = eng.real
+            dl = getattr(eng, "devlog", None)
+            on_gpu = dl.offloaded if dl and dl.offloaded is not None else plan.ngl
+            mismatch = self._offload_mismatch(plan, eng)
             est_buf = plan.est.vram - plan.est.overhead_gpu if plan else 0
-            if est_buf and real.gpu:
+            if est_buf and real.gpu and not mismatch:          # una carga «fallida» no debe falsear la calibración
                 calib = max(0.8, min(1.3, real.gpu / (est_buf / plan.est.calib)))
                 self.s.model_cfg(entry.name)["calib"] = round(calib, 3)
             say(f"[ok]✓[/] [bold]{escape(entry.name)}[/] [dim]listo en {eng.load_time:.1f}s · ctx "
-                f"{render.human_tokens(eng.n_ctx)} · {plan.ngl}/{max_gpu_layers(entry.info)} capas en GPU · "
+                f"{render.human_tokens(eng.n_ctx)} · {on_gpu}/{max_gpu_layers(entry.info)} capas en GPU · "
                 f"VRAM {render.gb(real.gpu)} GB[/]")
+            if mismatch:
+                self._explain_offload(plan, eng)
         else:
             say(f"[ok]✓[/] [bold]{escape(entry.name)}[/] [dim](Ollama) listo[/]")
         rd = self.reader_entry

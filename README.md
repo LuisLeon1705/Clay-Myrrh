@@ -10,8 +10,8 @@ Asistente de IA **100 % local** para la terminal, al estilo de Claude Code o Gem
 GGUF con [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) o con [Ollama](https://ollama.com),
 lee imágenes y PDFs, crea archivos y encadena respuestas largas sin perder el hilo.
 
-**Web:** [luisleon1705.github.io/Local_AI](https://luisleon1705.github.io/Local_AI/), con la
-[demo en vivo de los componentes](https://luisleon1705.github.io/Local_AI/demo/). La publica
+**Web:** [luisleon1705.github.io/Clay-Myrrh](https://luisleon1705.github.io/Clay-Myrrh/), con la
+[demo en vivo de los componentes](https://luisleon1705.github.io/Clay-Myrrh/demo/). La publica
 `.github/workflows/pages.yml` desde `site/`.
 
 Interfaz en español · Windows · Python 3.10+ (probado con 3.14).

@@ -1,14 +1,18 @@
 <img src="localai/assets/clay-myrrh.png" alt="" width="96" align="right">
 
+**Español** · [English](README.en.md)
+
 # Clay-Myrrh
 
 **Tu IA, en casa.** *Clay* es arcilla: se moldea a mano y toma la forma que tú le das. *Myrrh*, mirra:
 una resina que se guardaba como un tesoro. Aquí, una IA que ajustas a tu equipo, vive en tu ordenador,
 funciona sin internet y no comparte nada con nadie.
 
-Asistente de IA **100 % local** para la terminal, al estilo de Claude Code o Gemini CLI. Ejecuta modelos
-GGUF con [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) o con [Ollama](https://ollama.com),
-lee imágenes y PDFs, crea archivos y encadena respuestas largas sin perder el hilo.
+Un asistente para la terminal que usa **modelos de IA locales**, al estilo de Claude Code o Gemini CLI.
+Ejecuta modelos GGUF con [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) o con
+[Ollama](https://ollama.com), lee imágenes y PDFs, crea archivos y encadena respuestas largas sin perder
+el hilo. Clay-Myrrh no trae un modelo propio: usa los que tú elijas, y el asistente te recomienda los
+que mejor van con tu equipo.
 
 **Web:** [luisleon1705.github.io/Clay-Myrrh](https://luisleon1705.github.io/Clay-Myrrh/), con la
 [demo en vivo de los componentes](https://luisleon1705.github.io/Clay-Myrrh/demo/). La publica
@@ -121,15 +125,15 @@ une en orden. El registro de cada cadena se guarda en `~/.local_ai/relevos/`.
 /proyecto C:\proyectos\mi-tienda
 > cambia el título a «Tienda Aurora» y haz que el botón de comprar muestre una alerta
 ```
-- **Contexto:** el modelo recibe la estructura de la carpeta, sin `node_modules`, `.git`, compilados ni lo
-  que ignore tu `.gitignore`. En proyectos pequeños, el programa le adjunta además el contenido de los
-  archivos nuevos o cambiados desde la última vez, así no tiene que pedirlos.
+- **Contexto:** el modelo recibe la red del proyecto (ver abajo) o la estructura de la carpeta, sin
+  `node_modules`, `.git`, compilados ni lo que ignore tu `.gitignore`.
 - **Herramientas de texto:** las entiende cualquier modelo, no hace falta function calling. El programa
   devuelve los resultados y el modelo sigue, hasta `project_rounds` rondas por mensaje (4 por defecto).
   - `<leer ruta="x"/>` lee un archivo, `<listar ruta="x"/>` lista una carpeta y `<grep>texto</grep>`
     busca en todo el proyecto.
   - `<editar ruta="x">` con pares BUSCAR/REEMPLAZAR cambia solo lo necesario.
-  - Los bloques ```lenguaje ruta``` crean archivos nuevos.
+  - Los bloques ```` ```lenguaje ruta ```` o `<crear ruta="x">…</crear>` crean archivos nuevos;
+    `<borrar ruta="x"/>` borra uno.
 - **Tolerancia:** también acepta pares BUSCAR/REEMPLAZAR sin ruta (deduce el archivo por su contenido) y
   llamadas JSON tipo `read_file` o `str_replace`. Si el modelo anuncia un cambio sin hacerlo, se lo
   recuerda.
@@ -217,6 +221,7 @@ Todo el estado vive en `~/.local_ai/` (fuera de este repositorio):
 | `proyectos/` | proyectos de `/zero` |
 | `transcripciones/` | caché del lector visual |
 | `relevos/` | registros del relevo |
+| `cadenas/` | informes de `/cadena` |
 | `respaldos/<sesión>/` | copias de los archivos del proyecto antes de cada cambio del modelo |
 | `crash.log` | errores no controlados |
 

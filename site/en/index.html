@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clay-Myrrh · your AI, at home</title>
+<meta name="description" content="A terminal assistant that runs local AI models, in the style of Claude Code or Gemini CLI: GGUF models with llama.cpp or Ollama, offline and with no quotas.">
+<meta property="og:title" content="Clay-Myrrh · your AI, at home">
+<meta property="og:description" content="A terminal assistant that runs local AI models: reads images and PDFs, edits projects and works offline.">
+<link rel="alternate" hreflang="es" href="https://luisleon1705.github.io/Clay-Myrrh/">
+<link rel="alternate" hreflang="en" href="https://luisleon1705.github.io/Clay-Myrrh/en/">
+<meta property="og:image" content="../assets/clay-myrrh.png">
+<link rel="icon" href="../assets/clay-myrrh.svg" type="image/svg+xml">
+<link rel="alternate icon" href="../assets/clay-myrrh.ico">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="../assets/clay-myrrh.svg" alt=""> Clay-Myrrh</a>
+    <nav class="links">
+      <a href="#features" class="hide-sm">Features</a>
+      <a href="#install">Install</a>
+      <a href="#commands" class="hide-sm">Commands</a>
+      <a href="../demo/">Demo</a>
+      <a href="https://github.com/LuisLeon1705/Clay-Myrrh">GitHub</a>
+      <a class="lang" href="../" hreflang="es" lang="es" title="Español">ES</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero wrap">
+    <img class="logo" src="../assets/clay-myrrh.svg" alt="Clay-Myrrh icon: a chip with a house">
+    <h1><span class="grad">Clay-Myrrh</span></h1>
+    <p class="tag"><strong>Your AI, at home.</strong> A terminal assistant that runs local AI models, in the style
+      of Claude Code or Gemini CLI. Offline, with no quotas, and your data never leaves your computer.</p>
+    <div class="btns">
+      <a class="btn primary" href="#install">Install on Windows</a>
+      <a class="btn" href="https://github.com/LuisLeon1705/Clay-Myrrh">View the code</a>
+      <a class="btn" href="../demo/">Components demo</a>
+    </div>
+    <div class="pills">
+      <span class="pill">llama.cpp · Ollama</span><span class="pill">GGUF models</span>
+      <span class="pill">NVIDIA · AMD · Intel</span><span class="pill">Spanish interface</span>
+    </div>
+
+    <div class="term" aria-label="Example terminal session">
+      <div class="bar"><i></i><i></i><i></i></div>
+<pre><span class="logo-txt">█▀▀ █   ▄▀█ █▄█ ▄▄ █▀▄▀█ █▄█ █▀█ █▀█ █ █
+█▄▄ █▄▄ █▀█  █     █ ▀ █  █  █▀▄ █▀▄ █▀█</span>
+<span class="dim">tu IA, en casa · v4.0</span>
+
+<span class="u">›</span> /proyecto C:\projects\tablon
+<span class="ok">✓</span> Proyecto abierto  tablon <span class="dim">· 17 archivos · red ≈1.100 tokens (leerlo todo: ≈9.500)</span>
+  <span class="w">1 aviso:</span> views/index.ejs: formulario POST /comentarios → no hay ninguna ruta
+  <span class="dim">(¿falta montar src/routes/comments.js con el prefijo /comentarios?)</span>
+
+<span class="u">›</span> fix the warning
+<span class="ok">✓</span> Editar  src/server.js <span class="dim">· 1 de 1 cambio aplicado</span>
+<span class="ok">✓</span> Cambios en el proyecto <span class="dim">· /deshacer los revierte · /cambios diff los muestra</span>
+<span class="dim">⏱ 41 s · 412 tok · 10,1 t/s</span></pre>
+    </div>
+    <p class="lead" style="margin: 14px auto 0; font-size: 14px;">The interface is in Spanish; you can talk to the
+      model in English or any language it knows.</p>
+  </div>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>Everything you expect from a coding assistant, <span class="grad">on your machine</span></h2>
+      <p class="lead">Clay-Myrrh loads the model on your GPU (or in RAM if it doesn't fit), works out how much memory
+        it needs before loading it, and tells you what to do when something goes wrong.</p>
+      <div class="grid">
+        <div class="card"><div class="ico">🔒</div><h3>Fully local</h3>
+          <p>Works offline. Your files, photos and conversations never leave your computer.</p></div>
+        <div class="card"><div class="ico">🗂️</div><h3>Project mode</h3>
+          <p>The model reads, searches, creates and edits the files in a folder with small edits. Every change keeps
+            a backup and can be undone with <code>/deshacer</code>.</p></div>
+        <div class="card"><div class="ico">🕸️</div><h3>Project map</h3>
+          <p><code>/grafo</code> maps your code without using the model: what each file uses, its routes, views and
+            tables. It also warns you about pieces that don't fit.</p></div>
+        <div class="card"><div class="ico">👁️</div><h3>Images and PDFs</h3>
+          <p>Reads photos, screenshots and PDFs, scanned ones included. A vision model acts as a "reader" for any
+            text model.</p></div>
+        <div class="card"><div class="ico">🔁</div><h3>Automatic relay</h3>
+          <p>Long answers continue on their own without re-reading what was already written, and the parts are
+            joined at the end.</p></div>
+        <div class="card"><div class="ico">⛓️</div><h3>Prompt chains</h3>
+          <p>Chain steps with <code>/cadena</code> and leave it working. When it finishes, you get a report of every
+            step.</p></div>
+        <div class="card"><div class="ico">🧩</div><h3>57 web components</h3>
+          <p>Full pages with very few tokens: the model writes tags and the program generates tested HTML, CSS and
+            JavaScript.</p></div>
+        <div class="card"><div class="ico">🧭</div><h3>Setup assistant</h3>
+          <p>Detects your GPU (NVIDIA, AMD or Intel), recommends models for your hardware and compares local AI with
+            Claude, Gemini and Codex.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt" id="map">
+    <div class="wrap demo">
+      <div>
+        <h2>Fewer tokens, <span class="grad">fewer mistakes</span></h2>
+        <p class="lead">Instead of reading everything, the model gets a map of the project: one line per file with
+          its connections. It is stored in <code>Clay-Myrrh.md</code>, next to your instructions, like a CLAUDE.md or
+          a GEMINI.md, and it updates itself.</p>
+        <div class="stats">
+          <div class="card stat"><b class="grad">×9</b><span>fewer tokens on a 17-file web app</span></div>
+          <div class="card stat"><b class="grad">×100+</b><span>fewer on Clay-Myrrh's own code</span></div>
+          <div class="card stat"><b class="grad">&lt;1 s</b><span>to build it, no model needed</span></div>
+        </div>
+      </div>
+<pre class="cmd">## Red del proyecto
+Stack: Node.js (express, ejs) · PostgreSQL
+Comandos: npm start · docker compose up
+- src/server.js [js 98]
+  → src/db.js, src/routes/auth.js, …
+  monta: /comentarios=routes/comments.js
+  vistas: index · env: PORT, SESSION_SECRET
+- db/init.sql [sql 25]
+  tablas: users(…), comments(…), session(…)
+- views/login.ejs [ejs 49]
+  incluye: partials/nav.ejs
+  formularios: POST /login
+### Avisos
+- auth.js: res.render('login') no pasa
+  csrfToken → error 500 al abrirla</pre>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <h2>Install on Windows</h2>
+      <p class="lead">You need Python 3.10 or later. The assistant opens in your browser, detects your hardware and
+        recommends models, but it never downloads anything without asking.</p>
+      <ol class="steps">
+        <li><div><h3>Get the code</h3>
+          <p>Clone the repository or <a href="https://github.com/LuisLeon1705/Clay-Myrrh/archive/refs/heads/main.zip">download the ZIP</a>.</p>
+<pre class="cmd">git clone https://github.com/LuisLeon1705/Clay-Myrrh.git</pre></div></li>
+        <li><div><h3>Run the installer</h3>
+          <p><code>instalar-clay-myrrh.bat</code> checks Python and the libraries, creates the shortcuts and opens the
+            assistant with the guide and the comparison.</p></div></li>
+        <li><div><h3>Install the engine</h3>
+          <p>The assistant gives you the exact command for your GPU. With AMD or Intel, llama-cpp-python is built with
+            Vulkan; if you'd rather not build anything, use Ollama.</p></div></li>
+        <li><div><h3>Get to work</h3>
+          <p>Open the <strong>Clay-Myrrh</strong> shortcut or, from a terminal:</p>
+<pre class="cmd">clay-myrrh                              # chat
+clay-myrrh -d C:\projects\my-site       # work on a folder
+clay-myrrh --grafo C:\projects\my-site  # project map in Clay-Myrrh.md</pre></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="alt" id="commands">
+    <div class="wrap">
+      <h2>Main commands</h2>
+      <p class="lead">Type <code>/</code> in the chat to see the full menu, with descriptions and autocomplete.
+        Commands keep their Spanish names.</p>
+      <div class="scroll">
+        <table class="table">
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>/model</code></td><td>choose a model, with its size, whether it has vision and the memory it needs</td></tr>
+          <tr><td><code>/proyecto &lt;folder&gt;</code></td><td>work on a folder: the model edits its files</td></tr>
+          <tr><td><code>/grafo [ver|avisos]</code></td><td>project map and automatic checks</td></tr>
+          <tr><td><code>/cambios</code> · <code>/deshacer</code></td><td>see and undo what the model changed</td></tr>
+          <tr><td><code>/cadena &lt;file&gt;</code></td><td>run several prompts in a row, with a report</td></tr>
+          <tr><td><code>/zero</code></td><td>build a website from scratch with a questionnaire and guided tasks</td></tr>
+          <tr><td><code>/compact</code></td><td>summarise the conversation to free up context</td></tr>
+          <tr><td><code>/mem</code> · <code>/doctor</code></td><td>estimate VRAM and RAM before loading, and diagnose the installation</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="local">
+    <div class="wrap">
+      <h2>What is a local AI good for?</h2>
+      <p class="lead">It works anywhere, though not on any hardware. It's for what you don't want to send to the
+        cloud, for when you have no connection, and for working without usage limits.</p>
+      <div class="grid">
+        <div class="card"><h3>Privacy</h3><p>Documents, contracts, work code or personal photos stay on your disk.</p></div>
+        <div class="card"><h3>Offline</h3><p>On a plane, in the countryside or with a bad signal: the model lives on your computer.</p></div>
+        <div class="card"><h3>No quotas</h3><p>No message limits and no plan changes: always the same model, for as long as you want.</p></div>
+        <div class="card"><h3>Honest limits</h3><p>A local model is smaller than cloud ones. The assistant tells you what to expect from your hardware.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Clay-Myrrh · your AI, at home · built on llama.cpp</span>
+    <span>
+      <a href="https://github.com/LuisLeon1705/Clay-Myrrh">GitHub</a> ·
+      <a href="../demo/">Components demo</a> ·
+      <button class="theme-btn" id="theme" type="button">Switch theme</button>
+    </span>
+  </div>
+</footer>
+<script>
+(function () {
+  var root = document.documentElement, KEY = "clay-myrrh-tema";
+  try { var t = localStorage.getItem(KEY); if (t) root.setAttribute("data-theme", t); } catch (e) {}
+  document.getElementById("theme").addEventListener("click", function () {
+    var dark = root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches;
+    var next = dark ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem(KEY, next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>

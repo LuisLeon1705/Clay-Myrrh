@@ -61,6 +61,8 @@ localai/
   inputbox.py          caja de entrada (prompt_toolkit), selectores, barra inferior
   sessions.py, doctor.py, llamalog.py
 models/                llm/ · vision/ · mmproj/ · diffusion/ (los .gguf NO van al repositorio)
+site/                  web de GitHub Pages: index.html (es), en/index.html (en) y style.css compartido;
+                       la publica .github/workflows/pages.yml junto al icono y la demo de componentes
 ```
 Estado del usuario (fuera del repositorio): `~/.local_ai/` contiene config.json, sessions/,
 archivos/ (lo que crea el modelo), relevos/ (registros del relevo), cadenas/ (informes de /cadena),
@@ -80,6 +82,8 @@ global) y crash.log.
 - Edita con herramientas de edición de archivos. **No uses heredocs de shell con escapes** (`\n`, `\b`,
   `\t`) para parchear Python: en Windows han corrompido archivos varias veces (saltos de línea literales,
   caracteres de control, bytes nulos). Después de un parche, comprueba con `ast.parse`.
+- **README.md (español) y README.en.md (inglés) van a la par**, igual que `site/index.html` y
+  `site/en/index.html`: si cambias uno, cambia el otro. La interfaz del programa es solo en español.
 - Respeta el estilo del código: módulos pequeños, funciones con docstring breve en español y sin
   dependencias nuevas salvo que sea necesario.
 

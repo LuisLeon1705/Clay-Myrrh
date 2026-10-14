@@ -620,6 +620,11 @@ class App:
                 f"VRAM {render.gb(real.gpu)} GB[/]"))
             if mismatch:
                 self._explain_offload(plan, eng)
+            if entry.info and not entry.info.chat_template and not eng.vision_error:
+                warn(T("Este GGUF no trae plantilla de chat: se usa un formato genérico y las respuestas pueden "
+                       "ser peores. Suele ser una conversión defectuosa: descarga otra versión (unsloth o bartowski).",
+                       "This GGUF has no chat template: a generic format is used and answers may be worse. It is "
+                       "usually a faulty conversion: download another build (unsloth or bartowski)."))
         else:
             say(T(f"[ok]✓[/] [bold]{escape(entry.name)}[/] [dim](Ollama) listo[/]", f"[ok]✓[/] [bold]{escape(entry.name)}[/] [dim](Ollama) ready[/]"))
         rd = self.reader_entry
@@ -2524,6 +2529,11 @@ class App:
                 m = self.catalog.find(name)
                 if m is None or not m.has_vision:
                     raise ValueError(T(f"'{name}' no es un modelo con visión instalada (/models).", f"'{name}' is not an installed model with vision (/models)."))
+                if not reader.usable(m):
+                    raise ValueError(T(f"{m.name} no trae plantilla de chat y su visión no puede funcionar (suele ser una "
+                                       f"conversión defectuosa): descarga otra versión (unsloth o bartowski).",
+                                       f"{m.name} has no chat template, so its vision cannot work (usually a faulty "
+                                       f"conversion): download another build (unsloth or bartowski)."))
                 self.s.vision_model = m.name
             save_settings(self.s)
             rd = self.reader_entry
@@ -2565,7 +2575,7 @@ class App:
                  f"{s.language} ({self.lang})" if s.language == "auto" else s.language, ["auto", "es", "en"]),
                 ("vision_mode", T("Modo de visión", "Vision mode"), s.vision_mode, ["lector", "directo"]),
                 ("vision_model", T("Modelo lector", "Reader model"), f"{s.vision_model}" + (f" ({rd.name})" if s.vision_model == "auto" and rd else ""),
-                 ["auto"] + [m.name for m in self.catalog.models if m.has_vision]),
+                 ["auto"] + [m.name for m in self.catalog.models if reader.usable(m)]),
                 ("save_files", T("Guardar archivos del modelo", "Save the model's files"), s.save_files, ["auto", "ask", "never"]),
                 ("thinking", T("Pedir razonamiento", "Request reasoning"), onoff(s.thinking), [yes, "no"]),
                 ("show_thinking", T("Mostrar razonamiento", "Show reasoning"), onoff(s.show_thinking), [yes, "no"]),

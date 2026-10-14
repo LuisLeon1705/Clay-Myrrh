@@ -349,6 +349,14 @@ class LlamaEngine:
             except Exception:
                 self._fmt = None
         self.can_think = bool(tmpl and ("enable_thinking" in tmpl or "<think>" in tmpl))
+        if self.vision and not tmpl:          # libmtmd necesita la plantilla para colocar las imágenes
+            self.vision, self._vision_handler = False, None
+            self.vision_error = T("Este GGUF no trae plantilla de chat y la visión la necesita: se usa solo como "
+                                  "texto (las imágenes las leerá el lector). Suele ser una conversión defectuosa: "
+                                  "descarga otra versión (unsloth o bartowski).",
+                                  "This GGUF has no chat template and vision needs one: it is used as text-only "
+                                  "(the reader will read images). It is usually a faulty conversion: download "
+                                  "another build (unsloth or bartowski).")
 
     # ------------------------------------------------------------------ util
     def _special(self, tok: int) -> str:

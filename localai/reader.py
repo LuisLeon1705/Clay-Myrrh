@@ -99,14 +99,19 @@ def _params_b(entry) -> float:
     return float(m.group(1)) if m else entry.size_bytes / 1e9
 
 
+def usable(m) -> bool:
+    """¿Puede hacer de lector? GGUF con mmproj y plantilla de chat (libmtmd la necesita para la imagen)."""
+    return m.kind == "gguf" and m.has_vision and bool(m.info and m.info.chat_template)
+
+
 def pick_reader(catalog, settings):
     """Modelo con visión que hará de lector: el elegido en /vision modelo o el más grande disponible."""
-    vis = [m for m in catalog.models if m.kind == "gguf" and m.has_vision]
+    vis = [m for m in catalog.models if usable(m)]
     if not vis:
         return None
     if settings.vision_model and settings.vision_model != "auto":
         chosen = catalog.find(settings.vision_model)
-        if chosen is not None and chosen.has_vision:
+        if chosen in vis:
             return chosen
     return max(vis, key=_params_b)
 

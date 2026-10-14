@@ -188,12 +188,13 @@ class InputLexer(Lexer):
 
 
 class Placeholder(Processor):
-    def __init__(self, text: str):
-        self.text = text
+    def __init__(self, text: str | Callable[[], str]):
+        self.text = text                       # texto fijo o función (cambia con el idioma)
 
     def apply_transformation(self, ti: TransformationInput) -> Transformation:
         if ti.document.text == "" and ti.lineno == 0:
-            return Transformation(fragments=[("class:placeholder", self.text)])
+            text = self.text() if callable(self.text) else self.text
+            return Transformation(fragments=[("class:placeholder", text)])
         return Transformation(fragments=ti.fragments)
 
 
